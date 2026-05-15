@@ -14,7 +14,10 @@ const MONTHS = {
 };
 
 const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
+const DEFAULT_IMAGE_EXTENSION = ".jpg";
 const MAX_DETAIL_IMAGES = 50;
+const IMAGE_OBSERVER_ROOT_MARGIN = "700px 0px";
+const DETAIL_IMAGE_PROBE_BATCH = 6;
 
 const FAMILY_SOURCE = "eBird/Clements Checklist v2025, eBird Taxonomy v2025-4";
 
@@ -255,6 +258,7 @@ const speciesFamilies = {
 
 const imagePathCache = new Map();
 const galleryImageCache = new Map();
+let lazyImageObserver = null;
 
 const state = {
   allBirds: [],
@@ -264,6 +268,7 @@ const state = {
   family: "all",
   sort: "dateDesc",
   activeBird: null,
+  lastGalleryScroll: 0,
   modalImages: [],
   modalIndex: 0,
 };
@@ -273,7 +278,12 @@ const els = {};
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
   cacheElements();
+  setupLazyImageObserver();
   state.allBirds = birds.map(enrichBird);
 
   renderHero();
@@ -477,7 +487,7 @@ function renderHero() {
   els.statFamilies.textContent = familyCount;
   els.heroFeatureName.textContent = latestBird.name;
   els.heroFeatureMeta.textContent = `${latestBird.primarySite} | ${formatSeenDate(latestBird)}`;
-  hydrateImage(els.heroFeatureImg, latestBird, 1);
+  hydrateImage(els.heroFeatureImg, latestBird, 1, { priority: true });
 }
 
 function renderFeatured() {
@@ -500,6 +510,8 @@ function renderFeatured() {
     const img = document.createElement("img");
     img.alt = bird.name;
     img.loading = index === 0 ? "eager" : "lazy";
+    img.decoding = "async";
+    if (index === 0) img.fetchPriority = "high";
 
     const copy = document.createElement("div");
     copy.className = "feature-card__copy";
@@ -511,7 +523,7 @@ function renderFeatured() {
 
     card.append(img, copy);
     els.featuredGrid.append(card);
-    hydrateImage(img, bird, 1);
+    hydrateImage(img, bird, 1, { priority: index === 0 });
   });
 }
 
@@ -724,6 +736,7 @@ function createBirdCard(bird, index) {
   img.alt = bird.name;
   img.loading = index < 8 ? "eager" : "lazy";
   img.decoding = "async";
+  img.fetchPriority = index < 4 ? "high" : "low";
   imageWrap.append(img);
 
   const body = document.createElement("div");
@@ -739,7 +752,7 @@ function createBirdCard(bird, index) {
   `;
 
   card.append(imageWrap, body);
-  hydrateImage(img, bird, 1);
+  hydrateImage(img, bird, 1, { priority: index < 8 });
   return card;
 }
 
@@ -771,10 +784,11 @@ async function openBird(id, pushHistory = true) {
   if (!bird) return;
 
   state.activeBird = bird;
+  state.lastGalleryScroll = window.scrollY || document.documentElement.scrollTop || 0;
   els.homeView.classList.add("hidden");
   els.detailPage.classList.remove("hidden");
   document.body.classList.add("showing-detail");
-  window.scrollTo({ top: 0, behavior: "auto" });
+  resetDetailScroll();
 
   els.detailGroup.textContent = `${bird.family.scientific} | ${bird.family.common}`;
   els.birdName.textContent = bird.name;
@@ -785,11 +799,13 @@ async function openBird(id, pushHistory = true) {
   els.photoCount.textContent = "Loading photos";
   els.detailGallery.innerHTML = `<p class="loading-note">Loading photos...</p>`;
 
-  hydrateImage(els.detailHeroImg, bird, 1);
+  hydrateImage(els.detailHeroImg, bird, 1, { priority: true });
 
   if (pushHistory) {
     history.pushState({ birdId: id }, "", `#bird-${id}`);
   }
+
+  resetDetailScroll();
 
   const images = await collectBirdImages(bird);
   if (!state.activeBird || state.activeBird.id !== bird.id) return;
@@ -816,6 +832,7 @@ function renderDetailGallery(bird, images) {
     img.alt = `${bird.name} photo ${index + 1}`;
     img.loading = index < 6 ? "eager" : "lazy";
     img.decoding = "async";
+    img.fetchPriority = index < 3 ? "high" : "low";
 
     button.append(img);
     button.addEventListener("click", () => openModal(images, index, bird));
@@ -879,20 +896,80 @@ function updateModal() {
   els.modalCaption.textContent = `${bird.name} | ${state.modalIndex + 1} of ${state.modalImages.length}`;
 }
 
-function hydrateImage(img, bird, index) {
+function setupLazyImageObserver() {
+  if (!("IntersectionObserver" in window)) return;
+
+  lazyImageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      observer.unobserve(img);
+      hydrateImageNow(img, img.__bird, img.__imageIndex);
+    });
+  }, { rootMargin: IMAGE_OBSERVER_ROOT_MARGIN });
+}
+
+function resetDetailScroll() {
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+  requestAnimationFrame(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    requestAnimationFrame(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  });
+}
+
+function hydrateImage(img, bird, index, options = {}) {
+  if (!img || !bird) return;
+
+  img.__bird = bird;
+  img.__imageIndex = index;
+
+  const shouldLoadNow = options.priority || img.loading === "eager" || !lazyImageObserver;
+  if (shouldLoadNow) {
+    hydrateImageNow(img, bird, index);
+    return;
+  }
+
+  lazyImageObserver.observe(img);
+}
+
+function hydrateImageNow(img, bird, index) {
+  if (!img || !bird) return;
+
   resolveImagePath(bird, index).then((src) => {
     if (!img.isConnected || !src) return;
 
     img.onload = () => img.classList.add("is-loaded");
+    img.onerror = () => {
+      img.removeAttribute("src");
+      img.classList.remove("is-loaded");
+    };
     img.src = src;
   });
 }
 
 function resolveImagePath(bird, index) {
+  const directImage = Array.isArray(bird.images) ? bird.images[index - 1] : null;
+  if (directImage) return Promise.resolve(directImage);
+
   const key = `${bird.id}:${index}`;
   if (imagePathCache.has(key)) return imagePathCache.get(key);
 
-  const candidates = IMAGE_EXTENSIONS.map((extension) => `Images/${bird.folder}/${index}${extension}`);
+  const defaultCandidate = `Images/${bird.folder}/${index}${DEFAULT_IMAGE_EXTENSION}`;
+  const fallbackCandidates = IMAGE_EXTENSIONS
+    .filter((extension) => extension !== DEFAULT_IMAGE_EXTENSION)
+    .map((extension) => `Images/${bird.folder}/${index}${extension}`);
+  const candidates = [defaultCandidate, ...fallbackCandidates];
+
   const promise = new Promise((resolve) => {
     tryImageCandidate(candidates, 0, resolve);
   });
@@ -916,18 +993,35 @@ function tryImageCandidate(candidates, index, resolve) {
 async function collectBirdImages(bird) {
   if (galleryImageCache.has(bird.id)) return galleryImageCache.get(bird.id);
 
+  if (Array.isArray(bird.images) && bird.images.length) {
+    galleryImageCache.set(bird.id, bird.images);
+    return bird.images;
+  }
+
   const images = [];
   let misses = 0;
 
-  for (let index = 1; index <= MAX_DETAIL_IMAGES; index += 1) {
-    const src = await resolveImagePath(bird, index);
-    if (src) {
-      images.push(src);
-      misses = 0;
-    } else {
-      misses += 1;
-      if (index > 1 && misses >= 4) break;
+  for (let start = 1; start <= MAX_DETAIL_IMAGES; start += DETAIL_IMAGE_PROBE_BATCH) {
+    const batch = Array.from(
+      { length: Math.min(DETAIL_IMAGE_PROBE_BATCH, MAX_DETAIL_IMAGES - start + 1) },
+      (_, offset) => start + offset
+    );
+    const sources = await Promise.all(batch.map((imageIndex) => resolveImagePath(bird, imageIndex)));
+
+    for (const src of sources) {
+      if (src) {
+        images.push(src);
+        misses = 0;
+      } else {
+        misses += 1;
+        if (images.length && misses >= 4) {
+          galleryImageCache.set(bird.id, images);
+          return images;
+        }
+      }
     }
+
+    if (!images.length && misses >= DETAIL_IMAGE_PROBE_BATCH) break;
   }
 
   galleryImageCache.set(bird.id, images);
