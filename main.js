@@ -13,24 +13,11 @@ const MONTHS = {
   Dec: 11,
 };
 
-/** Try these extensions when probing folder-based originals (case variants for cross-platform clones). */
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
+const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
 const DEFAULT_IMAGE_EXTENSION = ".jpg";
 const MAX_DETAIL_IMAGES = 50;
 const IMAGE_OBSERVER_ROOT_MARGIN = "700px 0px";
 const DETAIL_IMAGE_PROBE_BATCH = 6;
-
-/** Matches derivative files emitted by npm run build:images (see scripts/generate-image-variants.mjs). */
-const IMAGE_TIER_FULL = "full";
-const IMAGE_TIER_THUMB = "thumb";
-const IMAGE_TIER_CARD = "card";
-const IMAGE_TIER_HERO = "hero";
-
-const IMG_SIZES_GRID =
-  "(max-width: 460px) 50vw, (max-width: 680px) 45vw, (max-width: 900px) 30vw, 210px";
-const IMG_SIZES_HERO_CARD = "(max-width: 1160px) min(620px, 92vw), 380px";
-const IMG_SIZES_HERO_DETAIL = "(max-width: 680px) 96vw, min(620px, 34vw)";
-const IMG_SIZES_FEATURE_CARD = "(max-width: 900px) 92vw, min(440px, 32vw)";
 
 const FAMILY_SOURCE = "eBird/Clements Checklist v2025, eBird Taxonomy v2025-4";
 
@@ -303,11 +290,6 @@ function init() {
   state.allBirds = birds.map(enrichBird);
 
   renderHero();
-  scheduleLatestHeroCardPreload();
-  if (els.featuredGrid) {
-    renderFeatured();
-  }
-
   renderInsights();
   renderRegionFilters();
   renderFamilyControls();
@@ -529,11 +511,7 @@ function renderHero() {
   els.statFamilies.textContent = familyCount;
   els.heroFeatureName.textContent = latestBird.name;
   els.heroFeatureMeta.textContent = `${latestBird.primarySite} | ${formatSeenDate(latestBird)}`;
-  hydrateImage(els.heroFeatureImg, latestBird, 1, {
-    priority: true,
-    tier: IMAGE_TIER_CARD,
-    sizes: IMG_SIZES_HERO_CARD,
-  });
+  hydrateImage(els.heroFeatureImg, latestBird, 1, { priority: true });
 }
 
 function renderFeatured() {
@@ -553,8 +531,7 @@ function renderFeatured() {
     card.className = "feature-card";
     card.addEventListener("click", () => openBird(bird.id));
 
-    const shell = createPictureImg(IMG_SIZES_FEATURE_CARD);
-    const img = shell.img;
+    const img = document.createElement("img");
     img.alt = bird.name;
     img.loading = index === 0 ? "eager" : "lazy";
     img.decoding = "async";
@@ -568,13 +545,9 @@ function renderFeatured() {
       <p>${escapeHTML(bird.primarySite)}</p>
     `;
 
-    card.append(shell.picture, copy);
+    card.append(img, copy);
     els.featuredGrid.append(card);
-    hydrateImage(img, bird, 1, {
-      priority: index === 0,
-      tier: IMAGE_TIER_CARD,
-      sizes: IMG_SIZES_FEATURE_CARD,
-    });
+    hydrateImage(img, bird, 1, { priority: index === 0 });
   });
 }
 
@@ -797,13 +770,12 @@ function createBirdCard(bird, index) {
   const imageWrap = document.createElement("div");
   imageWrap.className = "bird-card__image";
 
-  const shell = createPictureImg(IMG_SIZES_GRID);
-  const img = shell.img;
+  const img = document.createElement("img");
   img.alt = bird.name;
   img.loading = index < 8 ? "eager" : "lazy";
   img.decoding = "async";
   img.fetchPriority = index < 4 ? "high" : "low";
-  imageWrap.append(shell.picture);
+  imageWrap.append(img);
 
   const body = document.createElement("div");
   body.className = "bird-card__body";
@@ -814,15 +786,10 @@ function createBirdCard(bird, index) {
     </div>
     <h3>${escapeHTML(bird.name)}</h3>
     <p class="bird-card__site">${escapeHTML(bird.primarySite)}</p>
-    <span class="tag" style="--tag-color: ${escapeHTML(bird.family.accent)}">${escapeHTML(bird.family.scientific)}</span>
   `;
 
   card.append(imageWrap, body);
-  hydrateImage(img, bird, 1, {
-    priority: index < 8,
-    tier: IMAGE_TIER_THUMB,
-    sizes: IMG_SIZES_GRID,
-  });
+  hydrateImage(img, bird, 1, { priority: index < 8 });
   return card;
 }
 
@@ -893,15 +860,7 @@ async function openBird(id, pushHistory = true, options = {}) {
   els.photoCount.textContent = "Loading photos";
   els.detailGallery.innerHTML = `<p class="loading-note">Loading photos...</p>`;
 
-  const detailWp = els.detailHeroImg?.closest?.("picture")?.querySelector('source[type="image/webp"]');
-  detailWp?.removeAttribute("srcset");
-  els.detailHeroImg?.removeAttribute("src");
-
-  hydrateImage(els.detailHeroImg, bird, 1, {
-    priority: true,
-    tier: IMAGE_TIER_HERO,
-    sizes: "100vw",
-  });
+  hydrateImage(els.detailHeroImg, bird, 1, { priority: true });
 
   if (pushHistory) {
     history.pushState({ birdId: id }, "", `#bird-${id}`);
@@ -932,18 +891,14 @@ function renderDetailGallery(bird, images) {
     button.type = "button";
     button.setAttribute("aria-label", `Open ${bird.name} photo ${index + 1}`);
 
-    const shell = createPictureImg(IMG_SIZES_HERO_DETAIL);
-    const img = shell.img;
+    const img = document.createElement("img");
+    img.src = src;
     img.alt = `${bird.name} photo ${index + 1}`;
     img.loading = index < 6 ? "eager" : "lazy";
     img.decoding = "async";
     img.fetchPriority = index < 3 ? "high" : "low";
 
-    button.append(shell.picture);
-    hydrateDetailThumb(img, src, {
-      priority: index < 6,
-      sizes: IMG_SIZES_HERO_DETAIL,
-    });
+    button.append(img);
     button.addEventListener("click", () => openModal(images, index, bird));
     els.detailGallery.append(button);
   });
@@ -1052,8 +1007,6 @@ function shiftModal(direction) {
 function updateModal() {
   const src = state.modalImages[state.modalIndex];
   const bird = state.modalBird;
-  if ("fetchPriority" in els.modalImg) els.modalImg.fetchPriority = "high";
-  els.modalImg.decoding = "async";
   els.modalImg.src = src;
   els.modalImg.alt = `${bird.name} photo ${state.modalIndex + 1}`;
   els.modalCaption.textContent = `${bird.name} | ${state.modalIndex + 1} of ${state.modalImages.length}`;
@@ -1067,7 +1020,7 @@ function setupLazyImageObserver() {
       if (!entry.isIntersecting) return;
       const img = entry.target;
       observer.unobserve(img);
-      hydrateImageNow(img);
+      hydrateImageNow(img, img.__bird, img.__imageIndex);
     });
   }, { rootMargin: IMAGE_OBSERVER_ROOT_MARGIN });
 }
@@ -1125,184 +1078,33 @@ function setPageScroll(top) {
   window.scrollTo({ top, left: 0, behavior: "auto" });
 }
 
-function createPictureImg(defaultSizes = "") {
-  const picture = document.createElement("picture");
-  const source = document.createElement("source");
-  source.type = "image/webp";
-  picture.append(source);
-
-  const img = document.createElement("img");
-  if (defaultSizes) {
-    img.sizes = defaultSizes;
-  }
-
-  img.decoding = "async";
-  picture.append(img);
-
-  return { picture, source, img };
-}
-
-function stemFromCanonical(canonicalSrc) {
-  return String(canonicalSrc || "").trim().replace(/\.[^/.]+$/, "");
-}
-
-function getWebpSourceForImg(img) {
-  const pic = img.closest("picture");
-  return pic ? pic.querySelector('source[type="image/webp"]') : null;
-}
-
-function injectDynPreload(href, { id = "preload", fetchPriority = "low" } = {}) {
-  if (!href || !document.head) return;
-
-  const existing = document.head.querySelector(`link[data-dyn-preload="${id}"]`);
-  if (existing?.getAttribute("href") === href) return;
-  existing?.remove();
-
-  const link = document.createElement("link");
-  link.rel = "preload";
-  link.as = "image";
-  link.href = href;
-  link.setAttribute("type", "image/webp");
-  link.setAttribute("data-dyn-preload", id);
-  if ("fetchPriority" in link) link.fetchPriority = fetchPriority;
-  document.head.appendChild(link);
-}
-
-async function scheduleLatestHeroCardPreload() {
-  const bird = getLatestBird();
-  if (!bird) return;
-
-  const canonical = await resolveImagePath(bird, 1);
-  if (!canonical) return;
-
-  injectDynPreload(`${stemFromCanonical(canonical)}-hero.webp`, {
-    id: "preload-latest-hero-card",
-    fetchPriority: "low",
-  });
-}
-
-function applyTieredImageSources(img, canonicalSrc, tier, sizes) {
-  img.onload = null;
-  img.onerror = null;
-
-  const stem = stemFromCanonical(canonicalSrc);
-
-  const revealBirdCardThumb = Boolean(img.closest(".bird-card__image"));
-
-  const markLoaded = () => {
-    if (revealBirdCardThumb) img.classList.add("is-loaded");
-  };
-
-  const markUnloaded = () => {
-    if (revealBirdCardThumb) img.classList.remove("is-loaded");
-  };
-
-  if (tier === IMAGE_TIER_FULL) {
-    getWebpSourceForImg(img)?.remove();
-    if (sizes !== undefined && sizes !== null) img.removeAttribute("sizes");
-    markUnloaded();
-    img.onload = markLoaded;
-    img.onerror = () => markUnloaded();
-    img.src = canonicalSrc;
-    return;
-  }
-
-  if (tier !== IMAGE_TIER_THUMB && tier !== IMAGE_TIER_CARD && tier !== IMAGE_TIER_HERO) {
-    applyTieredImageSources(img, canonicalSrc, IMAGE_TIER_FULL, "");
-    return;
-  }
-
-  const webpCandidate = `${stem}-${tier}.webp`;
-  const jpgDerivative = `${stem}-${tier}.jpg`;
-  markUnloaded();
-
-  const webpSource = getWebpSourceForImg(img);
-  if (webpSource) webpSource.srcset = webpCandidate;
-
-  if (typeof sizes === "string") {
-    img.sizes = sizes;
-  }
-
-  img.onload = markLoaded;
-  img.onerror = () => {
-    img.onerror = null;
-    getWebpSourceForImg(img)?.remove();
-
-    img.onload = markLoaded;
-    img.onerror = () => markUnloaded();
-    img.src = canonicalSrc;
-  };
-
-  img.src = jpgDerivative;
-}
-
 function hydrateImage(img, bird, index, options = {}) {
   if (!img || !bird) return;
 
-  delete img.__directCanonical;
   img.__bird = bird;
   img.__imageIndex = index;
-  img.__displayTier = typeof options.tier === "string" ? options.tier : IMAGE_TIER_THUMB;
-  img.__sizes = typeof options.sizes === "string" ? options.sizes : "";
 
-  if (typeof options.sizes === "string") {
-    img.sizes = img.__sizes;
-  }
-
-  const shouldLoadNow = Boolean(options.priority) || img.loading === "eager" || !lazyImageObserver;
+  const shouldLoadNow = options.priority || img.loading === "eager" || !lazyImageObserver;
   if (shouldLoadNow) {
-    hydrateImageNow(img);
+    hydrateImageNow(img, bird, index);
     return;
   }
 
   lazyImageObserver.observe(img);
 }
 
-function hydrateDetailThumb(img, canonicalFull, options = {}) {
-  if (!img || !canonicalFull) return;
+function hydrateImageNow(img, bird, index) {
+  if (!img || !bird) return;
 
-  delete img.__bird;
-  delete img.__imageIndex;
-  img.__directCanonical = canonicalFull;
-  img.__displayTier = IMAGE_TIER_HERO;
-  img.__sizes = typeof options.sizes === "string" ? options.sizes : IMG_SIZES_HERO_DETAIL;
-  img.sizes = img.__sizes;
-
-  const eager = Boolean(options.priority);
-  if (eager || !lazyImageObserver) {
-    hydrateImageNow(img);
-    return;
-  }
-
-  lazyImageObserver.observe(img);
-}
-
-function hydrateImageNow(img) {
-  if (!img) return;
-
-  if (typeof img.__directCanonical === "string" && img.__directCanonical.length) {
-    applyTieredImageSources(
-      img,
-      img.__directCanonical,
-      img.__displayTier,
-      img.__sizes
-    );
-
-    return;
-  }
-
-  const bird = img.__bird;
-  const imageIndex = img.__imageIndex;
-  if (!bird || imageIndex === undefined || imageIndex === null) return;
-
-  resolveImagePath(bird, imageIndex).then((src) => {
+  resolveImagePath(bird, index).then((src) => {
     if (!img.isConnected || !src) return;
-    applyTieredImageSources(
-      img,
-      src,
-      img.__displayTier,
-      img.__sizes
-    );
+
+    img.onload = () => img.classList.add("is-loaded");
+    img.onerror = () => {
+      img.removeAttribute("src");
+      img.classList.remove("is-loaded");
+    };
+    img.src = src;
   });
 }
 

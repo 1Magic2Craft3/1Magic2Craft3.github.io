@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="site-icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="site-icon-512.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="preload" as="image" type="image/webp" href="Images/Rainbow_Bee_eater/1-hero.webp" fetchpriority="high" />
+  <link rel="preload" as="image" href="Images/Rainbow_Bee_eater/1.jpg" fetchpriority="high" />
   <style>
     :root {
       --ink: #18211b;
@@ -108,21 +108,6 @@
       object-fit: cover;
       object-position: 38% 50%;
       filter: saturate(1.06) contrast(1.03);
-    }
-
-    .hero__image picture {
-      width: 100%;
-      height: 100%;
-    }
-
-    .hero-card__image picture,
-    .detail-hero__image picture,
-    .feature-card picture,
-    .detail-gallery picture,
-    .bird-card__image picture {
-      display: block;
-      width: 100%;
-      height: 100%;
     }
 
     .hero::before {
@@ -1343,16 +1328,7 @@
   <div id="home-view">
     <header class="hero">
       <div class="hero__image" aria-hidden="true">
-        <picture>
-          <source type="image/webp" srcset="Images/Rainbow_Bee_eater/1-hero.webp" />
-          <img
-            src="Images/Rainbow_Bee_eater/1-hero.jpg"
-            sizes="100vw"
-            alt=""
-            fetchpriority="high"
-            decoding="async"
-          />
-        </picture>
+        <img src="Images/Rainbow_Bee_eater/1.jpg" alt="" fetchpriority="high" decoding="async" />
       </div>
 
       <nav class="topbar shell" aria-label="Primary">
@@ -1369,7 +1345,7 @@
       <div class="hero__content shell">
         <div>
           <p class="eyebrow">Personal life list</p>
-          <h1><span class="hero-title__line">oliver.bird.photography</span><span class="hero-title__line">Life list</span></h1>
+          <h1><span class="hero-title__line">oliver.bird.photography</span><span class="hero-title__line">Life List</span></h1>
           <p class="hero__lede"><a href="https://www.instagram.com/oliver.bird.photography/" target="_blank" rel="noopener">https://www.instagram.com/oliver.bird.photography/</a></p>
           <div class="hero__actions">
             <a class="solid-button" href="#gallery">Browse gallery</a>
@@ -1393,17 +1369,7 @@
 
         <button class="hero-card" type="button" id="hero-feature-card">
           <div class="hero-card__image">
-            <picture>
-              <source type="image/webp" />
-              <img
-                id="hero-feature-img"
-                src=""
-                sizes="(max-width: 1160px) min(620px, 92vw), 380px"
-                alt=""
-                fetchpriority="high"
-                decoding="async"
-              />
-            </picture>
+            <img id="hero-feature-img" src="Images/Great_Egret/1.jpg" alt="" fetchpriority="high" decoding="async" />
           </div>
           <div class="hero-card__body">
             <div class="hero-card__label">Newest Lifer</div>
@@ -1421,7 +1387,7 @@
           <div class="timeline-bars" id="timeline-bars"></div>
         </div>
         <div class="insight-panel">
-          <h3>Most Lifer Locations</h3>
+          <h3>Most visited spots</h3>
           <ul class="site-list" id="site-list"></ul>
         </div>
       </section>
@@ -1462,7 +1428,7 @@
             <h2>Family atlas</h2>
             <button class="filter-chip family-atlas__toggle" type="button" id="family-atlas-toggle" aria-expanded="false" aria-controls="family-atlas-panel">Show family atlas</button>
           </div>
-          <p>Browse the life list by scientific family, with the gallery tags following the same family assignments.</p>
+          <p>Browse the life list by scientific family.</p>
         </div>
         <div class="family-atlas__panel" id="family-atlas-panel" hidden>
           <div class="family-atlas__panel-actions">
@@ -1490,10 +1456,7 @@
   <section id="bird-detail-page" class="detail hidden" aria-live="polite">
     <div class="detail-hero">
       <div class="detail-hero__image" aria-hidden="true">
-        <picture>
-          <source type="image/webp" />
-          <img id="detail-hero-img" src="" sizes="100vw" alt="" decoding="async" fetchpriority="high" />
-        </picture>
+        <img id="detail-hero-img" src="" alt="" />
       </div>
       <div class="detail-topbar">
         <div class="shell detail-topbar__actions">
@@ -1527,8 +1490,7 @@
       <div>
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Photo set</p>
-            <h2>Portraits and moments</h2>
+            <h2>Photos</h2>
           </div>
         </div>
         <div class="detail-gallery" id="bird-carousel"></div>
