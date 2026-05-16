@@ -939,7 +939,7 @@ const birds = [
     "id": 118,
     "name": "Brown-eared Bulbul",
     "dateFirstSeen": "28 Nov 2025",
-    "location": "14, Hommachi 3-Chōme, Shibuya JP-Tokyo 35.68950, 139.68343 | JP-13",
+    "location": "14, Hommachi 3-Chome, Shibuya JP-Tokyo 35.68950, 139.68343 | JP-13",
     "description": "",
     "images": []
    },
@@ -947,7 +947,7 @@ const birds = [
     "id": 119,
     "name": "Large-billed Crow",
     "dateFirstSeen": "28 Nov 2025",
-    "location": "渋谷区--渋谷駅 (Shibuya Ward--Shibuya Station) | JP-13",
+    "location": "Shibuya Ward--Shibuya Station | JP-13",
     "description": "",
     "images": []
    },
@@ -955,7 +955,7 @@ const birds = [
     "id": 120,
     "name": "Oriental Turtle-Dove",
     "dateFirstSeen": "28 Nov 2025",
-    "location": "渋谷区--明治神宮--御苑・南池 (Shibuya Ward--Meiji Jingu Shrine--Inner Garden / Minamiike Pond) | JP-13",
+    "location": "Shibuya Ward--Meiji Jingu Shrine--Inner Garden / Minamiike Pond | JP-13",
     "description": "",
     "images": []
    },
@@ -963,7 +963,7 @@ const birds = [
     "id": 121,
     "name": "Asian Tit",
     "dateFirstSeen": "28 Nov 2025",
-    "location": "渋谷区--明治神宮--御苑・南池 (Shibuya Ward--Meiji Jingu Shrine--Inner Garden / Minamiike Pond) | JP-13",
+    "location": "Shibuya Ward--Meiji Jingu Shrine--Inner Garden / Minamiike Pond | JP-13",
     "description": "",
     "images": []
    },
@@ -971,7 +971,7 @@ const birds = [
     "id": 122,
     "name": "Eurasian Tree Sparrow",
     "dateFirstSeen": "28 Nov 2025",
-    "location": "渋谷区--原宿駅 (Shibuya Ward--Harajuku Station) | JP-13",
+    "location": "Shibuya Ward--Harajuku Station | JP-13",
     "description": "",
     "images": []
    },
@@ -979,7 +979,7 @@ const birds = [
     "id": 123,
     "name": "Eurasian Wigeon",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -987,7 +987,7 @@ const birds = [
     "id": 124,
     "name": "Eastern Spot-billed Duck",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -995,7 +995,7 @@ const birds = [
     "id": 125,
     "name": "Northern Pintail",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1003,7 +1003,7 @@ const birds = [
     "id": 126,
     "name": "Black-headed Gull",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1011,7 +1011,7 @@ const birds = [
     "id": 127,
     "name": "Gray Heron",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1019,7 +1019,7 @@ const birds = [
     "id": 128,
     "name": "Black Kite",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1027,7 +1027,7 @@ const birds = [
     "id": 129,
     "name": "Carrion Crow",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1035,7 +1035,7 @@ const birds = [
     "id": 130,
     "name": "White Wagtail",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1043,7 +1043,7 @@ const birds = [
     "id": 131,
     "name": "Oriental Greenfinch",
     "dateFirstSeen": "29 Nov 2025",
-    "location": "鎌倉市--鶴岡八幡宮 (Kamakura--Tsurugaoka Hachiman-gu Shrine) | JP-14",
+    "location": "Kamakura--Tsurugaoka Hachiman-gu Shrine | JP-14",
     "description": "",
     "images": []
    },
@@ -1051,7 +1051,7 @@ const birds = [
     "id": 132,
     "name": "Northern Shoveler",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1059,7 +1059,7 @@ const birds = [
     "id": 133,
     "name": "Mallard",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1067,7 +1067,7 @@ const birds = [
     "id": 134,
     "name": "Little Grebe",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1075,7 +1075,7 @@ const birds = [
     "id": 135,
     "name": "Japanese Pygmy Woodpecker",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1083,7 +1083,7 @@ const birds = [
     "id": 136,
     "name": "Varied Tit",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1091,7 +1091,7 @@ const birds = [
     "id": 137,
     "name": "Brambling",
     "dateFirstSeen": "01 Dec 2025",
-    "location": "奈良市--猿沢池 (Nara--Sarusawa Pond) | JP-29",
+    "location": "Nara--Sarusawa Pond | JP-29",
     "description": "",
     "images": []
    },
@@ -1099,7 +1099,7 @@ const birds = [
     "id": 138,
     "name": "Common Sandpiper",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1107,7 +1107,7 @@ const birds = [
     "id": 139,
     "name": "Black-tailed Gull",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1115,7 +1115,7 @@ const birds = [
     "id": 140,
     "name": "Osprey",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1123,7 +1123,7 @@ const birds = [
     "id": 141,
     "name": "Eurasian Sparrowhawk",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1131,7 +1131,7 @@ const birds = [
     "id": 142,
     "name": "Bull-headed Shrike",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1139,7 +1139,7 @@ const birds = [
     "id": 143,
     "name": "White-cheeked Starling",
     "dateFirstSeen": "02 Dec 2025",
-    "location": "大阪市--大阪南港野鳥園 (Osaka--Osaka Nanko Bird Sanctuary) | JP-27",
+    "location": "Osaka--Osaka Nanko Bird Sanctuary | JP-27",
     "description": "",
     "images": []
    },
@@ -1147,7 +1147,7 @@ const birds = [
     "id": 144,
     "name": "Little Egret",
     "dateFirstSeen": "03 Dec 2025",
-    "location": "京都市--桂川--亀山公園と葛野大堰の間 (Kyoto--Katsura River--Kameyama Park to Kadono Weir) | JP-26",
+    "location": "Kyoto--Katsura River--Kameyama Park to Kadono Weir | JP-26",
     "description": "",
     "images": []
    },
@@ -1155,7 +1155,7 @@ const birds = [
     "id": 145,
     "name": "Japanese Wagtail",
     "dateFirstSeen": "03 Dec 2025",
-    "location": "京都市--桂川--亀山公園と葛野大堰の間 (Kyoto--Katsura River--Kameyama Park to Kadono Weir) | JP-26",
+    "location": "Kyoto--Katsura River--Kameyama Park to Kadono Weir | JP-26",
     "description": "",
     "images": []
    },
@@ -1163,7 +1163,7 @@ const birds = [
     "id": 146,
     "name": "Warbling White-eye",
     "dateFirstSeen": "05 Dec 2025",
-    "location": "京都市--鷲峰山高台寺 (Kyoto--Jubuzan Kodai-ji Temple) | JP-26",
+    "location": "Kyoto--Jubuzan Kodai-ji Temple | JP-26",
     "description": "",
     "images": []
    },
@@ -1171,7 +1171,7 @@ const birds = [
     "id": 147,
     "name": "Blue Rock-Thrush",
     "dateFirstSeen": "05 Dec 2025",
-    "location": "京都市--鷲峰山高台寺 (Kyoto--Jubuzan Kodai-ji Temple) | JP-26",
+    "location": "Kyoto--Jubuzan Kodai-ji Temple | JP-26",
     "description": "",
     "images": []
    },
@@ -1179,7 +1179,7 @@ const birds = [
     "id": 148,
     "name": "Common Kingfisher",
     "dateFirstSeen": "05 Dec 2025",
-    "location": "京都市--鴨川--四条大橋/祇園 (Kyoto--Kamo River--Shijo-Ohashi Bridge / Gion) | JP-26",
+    "location": "Kyoto--Kamo River--Shijo-Ohashi Bridge / Gion | JP-26",
     "description": "",
     "images": []
    },
@@ -1187,7 +1187,7 @@ const birds = [
     "id": 149,
     "name": "Gadwall",
     "dateFirstSeen": "06 Dec 2025",
-    "location": "大阪市--大阪城公園 (Osaka--Osaka Castle Park) | JP-27",
+    "location": "Osaka--Osaka Castle Park | JP-27",
     "description": "",
     "images": []
    },
@@ -1195,7 +1195,7 @@ const birds = [
     "id": 150,
     "name": "Common Pochard",
     "dateFirstSeen": "06 Dec 2025",
-    "location": "大阪市--大阪城公園 (Osaka--Osaka Castle Park) | JP-27",
+    "location": "Osaka--Osaka Castle Park | JP-27",
     "description": "",
     "images": []
    },
@@ -1203,7 +1203,7 @@ const birds = [
     "id": 151,
     "name": "Tufted Duck",
     "dateFirstSeen": "06 Dec 2025",
-    "location": "大阪市--大阪城公園 (Osaka--Osaka Castle Park) | JP-27",
+    "location": "Osaka--Osaka Castle Park | JP-27",
     "description": "",
     "images": []
    },
@@ -1219,7 +1219,7 @@ const birds = [
     "id": 153,
     "name": "Green-winged Teal",
     "dateFirstSeen": "09 Dec 2025",
-    "location": "金沢市--兼六園 (Kanazawa--Kenrokuen Garden) | JP-17",
+    "location": "Kanazawa--Kenrokuen Garden | JP-17",
     "description": "",
     "images": []
    },
@@ -1227,7 +1227,7 @@ const birds = [
     "id": 154,
     "name": "Common Merganser",
     "dateFirstSeen": "09 Dec 2025",
-    "location": "金沢市--兼六園 (Kanazawa--Kenrokuen Garden) | JP-17",
+    "location": "Kanazawa--Kenrokuen Garden | JP-17",
     "description": "",
     "images": []
    },
@@ -1235,7 +1235,7 @@ const birds = [
     "id": 155,
     "name": "Peregrine Falcon",
     "dateFirstSeen": "09 Dec 2025",
-    "location": "金沢市--兼六園 (Kanazawa--Kenrokuen Garden) | JP-17",
+    "location": "Kanazawa--Kenrokuen Garden | JP-17",
     "description": "",
     "images": []
    },
@@ -1243,7 +1243,7 @@ const birds = [
     "id": 156,
     "name": "Japanese Bush Warbler",
     "dateFirstSeen": "09 Dec 2025",
-    "location": "金沢市--兼六園 (Kanazawa--Kenrokuen Garden) | JP-17",
+    "location": "Kanazawa--Kenrokuen Garden | JP-17",
     "description": "",
     "images": []
    },
@@ -1251,7 +1251,7 @@ const birds = [
     "id": 157,
     "name": "Mute Swan",
     "dateFirstSeen": "12 Dec 2025",
-    "location": "千代田区--皇居--皇居外苑 (Chiyoda Ward--Imperial Palace--Kokyo Gaien (Outer Gardens)) | JP-13",
+    "location": "Outer Gardens | JP-13",
     "description": "",
     "images": []
    },
@@ -1259,7 +1259,7 @@ const birds = [
     "id": 158,
     "name": "Falcated Duck",
     "dateFirstSeen": "12 Dec 2025",
-    "location": "千代田区--皇居--皇居外苑 (Chiyoda Ward--Imperial Palace--Kokyo Gaien (Outer Gardens)) | JP-13",
+    "location": "Outer Gardens | JP-13",
     "description": "",
     "images": []
    },

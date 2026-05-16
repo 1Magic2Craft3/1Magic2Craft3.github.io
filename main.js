@@ -13,11 +13,24 @@ const MONTHS = {
   Dec: 11,
 };
 
-const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
+/** Try these extensions when probing folder-based originals (case variants for cross-platform clones). */
+const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"];
 const DEFAULT_IMAGE_EXTENSION = ".jpg";
 const MAX_DETAIL_IMAGES = 50;
 const IMAGE_OBSERVER_ROOT_MARGIN = "700px 0px";
 const DETAIL_IMAGE_PROBE_BATCH = 6;
+
+/** Matches derivative files emitted by npm run build:images (see scripts/generate-image-variants.mjs). */
+const IMAGE_TIER_FULL = "full";
+const IMAGE_TIER_THUMB = "thumb";
+const IMAGE_TIER_CARD = "card";
+const IMAGE_TIER_HERO = "hero";
+
+const IMG_SIZES_GRID =
+  "(max-width: 460px) 50vw, (max-width: 680px) 45vw, (max-width: 900px) 30vw, 210px";
+const IMG_SIZES_HERO_CARD = "(max-width: 1160px) min(620px, 92vw), 380px";
+const IMG_SIZES_HERO_DETAIL = "(max-width: 680px) 96vw, min(620px, 34vw)";
+const IMG_SIZES_FEATURE_CARD = "(max-width: 900px) 92vw, min(440px, 32vw)";
 
 const FAMILY_SOURCE = "eBird/Clements Checklist v2025, eBird Taxonomy v2025-4";
 
@@ -269,6 +282,9 @@ const state = {
   sort: "dateDesc",
   activeBird: null,
   lastGalleryScroll: 0,
+  detailReturnTarget: "gallery",
+  randomDetailMode: false,
+  familyAtlasOpen: false,
   modalImages: [],
   modalIndex: 0,
 };
@@ -287,7 +303,11 @@ function init() {
   state.allBirds = birds.map(enrichBird);
 
   renderHero();
-  renderFeatured();
+  scheduleLatestHeroCardPreload();
+  if (els.featuredGrid) {
+    renderFeatured();
+  }
+
   renderInsights();
   renderRegionFilters();
   renderFamilyControls();
@@ -309,6 +329,8 @@ function cacheElements() {
   els.familySelect = document.getElementById("family-select");
   els.familyRail = document.getElementById("family-rail");
   els.familyResetButton = document.getElementById("family-reset-button");
+  els.familyAtlasToggle = document.getElementById("family-atlas-toggle");
+  els.familyAtlasPanel = document.getElementById("family-atlas-panel");
   els.featuredGrid = document.getElementById("featured-grid");
   els.timelineBars = document.getElementById("timeline-bars");
   els.siteList = document.getElementById("site-list");
@@ -322,6 +344,7 @@ function cacheElements() {
   els.randomBirdButton = document.getElementById("random-bird-button");
   els.latestBirdButton = document.getElementById("latest-bird-button");
   els.backButton = document.getElementById("back-button");
+  els.detailRandomBirdButton = document.getElementById("detail-random-bird-button");
   els.detailHeroImg = document.getElementById("detail-hero-img");
   els.detailGroup = document.getElementById("detail-group");
   els.birdName = document.getElementById("bird-name");
@@ -354,14 +377,24 @@ function bindEvents() {
     setFamilyFilter(els.familySelect.value);
   });
 
-  els.familyResetButton.addEventListener("click", () => {
-    setFamilyFilter("all");
-  });
+  if (els.familyResetButton) {
+    els.familyResetButton.addEventListener("click", () => {
+      setFamilyFilter("all");
+    });
+  }
+
+  if (els.familyAtlasToggle && els.familyAtlasPanel) {
+    els.familyAtlasToggle.addEventListener("click", () => toggleFamilyAtlas());
+  }
+
 
   els.randomBirdButton.addEventListener("click", openRandomBird);
-  els.latestBirdButton.addEventListener("click", () => openBird(getLatestBird().id));
-  els.heroFeatureCard.addEventListener("click", () => openBird(getLatestBird().id));
-  els.backButton.addEventListener("click", () => showGallery(true));
+  if (els.detailRandomBirdButton) {
+    els.detailRandomBirdButton.addEventListener("click", openRandomBird);
+  }
+  els.latestBirdButton.addEventListener("click", openNewestLifer);
+  els.heroFeatureCard.addEventListener("click", openNewestLifer);
+  els.backButton.addEventListener("click", handleDetailBack);
   els.closeModal.addEventListener("click", closeModal);
   els.modalPrev.addEventListener("click", () => shiftModal(-1));
   els.modalNext.addEventListener("click", () => shiftModal(1));
@@ -382,6 +415,7 @@ function bindEvents() {
 
   window.addEventListener("popstate", () => syncFromHash(false));
 }
+
 
 function enrichBird(bird) {
   const seenDate = parseSeenDate(bird.dateFirstSeen);
@@ -437,8 +471,16 @@ function getPrimarySite(location) {
 }
 
 function cleanSiteLabel(value) {
-  return (value || "")
+  const label = (value || "")
     .replace(/\s+(AU|JP)-[A-Z0-9-]+.*$/i, "")
+    .trim();
+
+  const englishMatch = label.match(/\(([^()]*[A-Za-z][^()]*)\)\s*$/);
+  if (englishMatch) return englishMatch[1].trim();
+
+  return label
+    .replace(/[\u3040-\u30ff\u3400-\u9fff]/g, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 
@@ -487,7 +529,11 @@ function renderHero() {
   els.statFamilies.textContent = familyCount;
   els.heroFeatureName.textContent = latestBird.name;
   els.heroFeatureMeta.textContent = `${latestBird.primarySite} | ${formatSeenDate(latestBird)}`;
-  hydrateImage(els.heroFeatureImg, latestBird, 1, { priority: true });
+  hydrateImage(els.heroFeatureImg, latestBird, 1, {
+    priority: true,
+    tier: IMAGE_TIER_CARD,
+    sizes: IMG_SIZES_HERO_CARD,
+  });
 }
 
 function renderFeatured() {
@@ -507,7 +553,8 @@ function renderFeatured() {
     card.className = "feature-card";
     card.addEventListener("click", () => openBird(bird.id));
 
-    const img = document.createElement("img");
+    const shell = createPictureImg(IMG_SIZES_FEATURE_CARD);
+    const img = shell.img;
     img.alt = bird.name;
     img.loading = index === 0 ? "eager" : "lazy";
     img.decoding = "async";
@@ -521,9 +568,13 @@ function renderFeatured() {
       <p>${escapeHTML(bird.primarySite)}</p>
     `;
 
-    card.append(img, copy);
+    card.append(shell.picture, copy);
     els.featuredGrid.append(card);
-    hydrateImage(img, bird, 1, { priority: index === 0 });
+    hydrateImage(img, bird, 1, {
+      priority: index === 0,
+      tier: IMAGE_TIER_CARD,
+      sizes: IMG_SIZES_FEATURE_CARD,
+    });
   });
 }
 
@@ -614,6 +665,20 @@ function renderFamilyControls() {
   renderFamilyRail();
 }
 
+function toggleFamilyAtlas(forceOpen) {
+  if (!els.familyAtlasToggle || !els.familyAtlasPanel) return;
+
+  state.familyAtlasOpen = typeof forceOpen === "boolean" ? forceOpen : !state.familyAtlasOpen;
+  els.familyAtlasPanel.hidden = !state.familyAtlasOpen;
+  els.familyAtlasToggle.setAttribute("aria-expanded", String(state.familyAtlasOpen));
+  els.familyAtlasToggle.textContent = state.familyAtlasOpen ? "Hide family atlas" : "Show family atlas";
+
+  if (state.familyAtlasOpen && state.family !== "all") {
+    const activeCard = els.familyRail.querySelector(`[data-family-id="${state.family}"]`);
+    if (activeCard) activeCard.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+  }
+}
+
 function renderFamilySelect() {
   const activeValue = state.family;
   const familySummaries = getFamilySummaries();
@@ -673,7 +738,7 @@ function setFamilyFilter(familyId) {
   state.family = familiesById[familyId] ? familyId : "all";
   els.familySelect.value = state.family;
   renderFamilyRail();
-  if (state.family !== "all") {
+  if (state.family !== "all" && state.familyAtlasOpen) {
     const activeCard = els.familyRail.querySelector(`[data-family-id="${state.family}"]`);
     if (activeCard) activeCard.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
   }
@@ -693,7 +758,7 @@ function applyFilters() {
   const query = state.query;
 
   const results = state.allBirds.filter((bird) => {
-    const haystack = `${bird.name} ${bird.location} ${bird.regionLabel} ${bird.family.scientific} ${bird.family.common}`.toLowerCase();
+    const haystack = `${bird.name} ${bird.site} ${bird.primarySite} ${bird.regionLabel} ${bird.family.scientific} ${bird.family.common}`.toLowerCase();
     const matchesQuery = !query || haystack.includes(query);
     const matchesRegion = state.region === "all" || bird.region === state.region;
     const matchesFamily = state.family === "all" || bird.familyId === state.family;
@@ -732,12 +797,13 @@ function createBirdCard(bird, index) {
   const imageWrap = document.createElement("div");
   imageWrap.className = "bird-card__image";
 
-  const img = document.createElement("img");
+  const shell = createPictureImg(IMG_SIZES_GRID);
+  const img = shell.img;
   img.alt = bird.name;
   img.loading = index < 8 ? "eager" : "lazy";
   img.decoding = "async";
   img.fetchPriority = index < 4 ? "high" : "low";
-  imageWrap.append(img);
+  imageWrap.append(shell.picture);
 
   const body = document.createElement("div");
   body.className = "bird-card__body";
@@ -752,7 +818,11 @@ function createBirdCard(bird, index) {
   `;
 
   card.append(imageWrap, body);
-  hydrateImage(img, bird, 1, { priority: index < 8 });
+  hydrateImage(img, bird, 1, {
+    priority: index < 8,
+    tier: IMAGE_TIER_THUMB,
+    sizes: IMG_SIZES_GRID,
+  });
   return card;
 }
 
@@ -770,25 +840,49 @@ function updateGallerySummary(results) {
 
   els.gallerySummary.textContent = parts.length
     ? `Showing ${parts.join(", ")}.`
-    : "Every bird in the collection.";
+    : "";
 }
 
 function openRandomBird() {
-  const pool = state.filteredBirds.length ? state.filteredBirds : state.allBirds;
+  const sourcePool = state.filteredBirds.length ? state.filteredBirds : state.allBirds;
+  const pool = state.activeBird && sourcePool.length > 1
+    ? sourcePool.filter((bird) => bird.id !== state.activeBird.id)
+    : sourcePool;
   const bird = pool[Math.floor(Math.random() * pool.length)];
-  openBird(bird.id);
+  openBird(bird.id, true, {
+    returnTarget: "hero",
+    returnScroll: 0,
+    randomDetailMode: true,
+    detailScroll: "balanced",
+  });
 }
 
-async function openBird(id, pushHistory = true) {
+function openNewestLifer() {
+  const latestBird = getLatestBird();
+  if (!latestBird) return;
+
+  openBird(latestBird.id, true, {
+    returnTarget: "hero",
+    returnScroll: 0,
+    detailScroll: "balanced",
+  });
+}
+
+async function openBird(id, pushHistory = true, options = {}) {
   const bird = state.allBirds.find((item) => item.id === id);
   if (!bird) return;
 
   state.activeBird = bird;
-  state.lastGalleryScroll = window.scrollY || document.documentElement.scrollTop || 0;
+  const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
+  state.detailReturnTarget = options.returnTarget === "hero" ? "hero" : "gallery";
+  state.randomDetailMode = Boolean(options.randomDetailMode);
+  const useBalancedDetailScroll = options.detailScroll === "balanced";
+  state.lastGalleryScroll = Number.isFinite(options.returnScroll) ? options.returnScroll : currentScroll;
   els.homeView.classList.add("hidden");
   els.detailPage.classList.remove("hidden");
   document.body.classList.add("showing-detail");
-  resetDetailScroll();
+  updateDetailActions();
+  resetDetailScroll(useBalancedDetailScroll);
 
   els.detailGroup.textContent = `${bird.family.scientific} | ${bird.family.common}`;
   els.birdName.textContent = bird.name;
@@ -799,18 +893,29 @@ async function openBird(id, pushHistory = true) {
   els.photoCount.textContent = "Loading photos";
   els.detailGallery.innerHTML = `<p class="loading-note">Loading photos...</p>`;
 
-  hydrateImage(els.detailHeroImg, bird, 1, { priority: true });
+  const detailWp = els.detailHeroImg?.closest?.("picture")?.querySelector('source[type="image/webp"]');
+  detailWp?.removeAttribute("srcset");
+  els.detailHeroImg?.removeAttribute("src");
+
+  hydrateImage(els.detailHeroImg, bird, 1, {
+    priority: true,
+    tier: IMAGE_TIER_HERO,
+    sizes: "100vw",
+  });
 
   if (pushHistory) {
     history.pushState({ birdId: id }, "", `#bird-${id}`);
   }
 
-  resetDetailScroll();
+  resetDetailScroll(useBalancedDetailScroll);
 
   const images = await collectBirdImages(bird);
   if (!state.activeBird || state.activeBird.id !== bird.id) return;
 
   renderDetailGallery(bird, images);
+  if (useBalancedDetailScroll) {
+    resetDetailScroll(true);
+  }
 }
 
 function renderDetailGallery(bird, images) {
@@ -827,31 +932,87 @@ function renderDetailGallery(bird, images) {
     button.type = "button";
     button.setAttribute("aria-label", `Open ${bird.name} photo ${index + 1}`);
 
-    const img = document.createElement("img");
-    img.src = src;
+    const shell = createPictureImg(IMG_SIZES_HERO_DETAIL);
+    const img = shell.img;
     img.alt = `${bird.name} photo ${index + 1}`;
     img.loading = index < 6 ? "eager" : "lazy";
     img.decoding = "async";
     img.fetchPriority = index < 3 ? "high" : "low";
 
-    button.append(img);
+    button.append(shell.picture);
+    hydrateDetailThumb(img, src, {
+      priority: index < 6,
+      sizes: IMG_SIZES_HERO_DETAIL,
+    });
     button.addEventListener("click", () => openModal(images, index, bird));
     els.detailGallery.append(button);
   });
 }
 
-function showGallery(pushHistory = true) {
+function handleDetailBack() {
+  if (state.detailReturnTarget === "hero") {
+    showHomeHero(true);
+    return;
+  }
+
+  showGallery(true);
+}
+
+function updateDetailActions() {
+  const returnsToHero = state.detailReturnTarget === "hero";
+  const isRandomMode = returnsToHero && state.randomDetailMode;
+
+  if (els.backButton) {
+    els.backButton.textContent = returnsToHero ? "\u2190 Back" : "\u2190 Gallery";
+  }
+
+  if (els.detailRandomBirdButton) {
+    els.detailRandomBirdButton.classList.toggle("hidden", !isRandomMode);
+  }
+}
+
+function showHomeHero(pushHistory = true) {
   state.activeBird = null;
+  state.detailReturnTarget = "gallery";
+  state.randomDetailMode = false;
   els.detailPage.classList.add("hidden");
   els.homeView.classList.remove("hidden");
   document.body.classList.remove("showing-detail");
+  updateDetailActions();
+
+  if (pushHistory) {
+    history.pushState({}, "", `${window.location.pathname}${window.location.search}`);
+  }
+
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  });
+}
+
+function showGallery(pushHistory = true) {
+  state.activeBird = null;
+  state.detailReturnTarget = "gallery";
+  state.randomDetailMode = false;
+  els.detailPage.classList.add("hidden");
+  els.homeView.classList.remove("hidden");
+  document.body.classList.remove("showing-detail");
+  updateDetailActions();
 
   if (pushHistory) {
     history.pushState({}, "", "#gallery");
   }
 
   requestAnimationFrame(() => {
-    document.getElementById("gallery").scrollIntoView({ block: "start" });
+    const targetScroll = Number.isFinite(state.lastGalleryScroll) ? state.lastGalleryScroll : 0;
+    window.scrollTo({ top: targetScroll, left: 0, behavior: "auto" });
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: targetScroll, left: 0, behavior: "auto" });
+    });
   });
 }
 
@@ -891,6 +1052,8 @@ function shiftModal(direction) {
 function updateModal() {
   const src = state.modalImages[state.modalIndex];
   const bird = state.modalBird;
+  if ("fetchPriority" in els.modalImg) els.modalImg.fetchPriority = "high";
+  els.modalImg.decoding = "async";
   els.modalImg.src = src;
   els.modalImg.alt = `${bird.name} photo ${state.modalIndex + 1}`;
   els.modalCaption.textContent = `${bird.name} | ${state.modalIndex + 1} of ${state.modalImages.length}`;
@@ -904,56 +1067,242 @@ function setupLazyImageObserver() {
       if (!entry.isIntersecting) return;
       const img = entry.target;
       observer.unobserve(img);
-      hydrateImageNow(img, img.__bird, img.__imageIndex);
+      hydrateImageNow(img);
     });
   }, { rootMargin: IMAGE_OBSERVER_ROOT_MARGIN });
 }
 
-function resetDetailScroll() {
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+function getGalleryScrollPosition() {
+  const gallery = document.getElementById("gallery");
+  if (!gallery) return window.scrollY || document.documentElement.scrollTop || 0;
+
+  const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+  return Math.max(0, Math.round(gallery.getBoundingClientRect().top + scrollTop));
+}
+
+function resetDetailScroll(useBalancedPosition = false) {
+  const getTop = () => useBalancedPosition ? getBalancedDetailScrollTop() : 0;
+  setPageScroll(getTop());
 
   requestAnimationFrame(() => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    setPageScroll(getTop());
 
     requestAnimationFrame(() => {
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      setPageScroll(getTop());
     });
   });
+
+  if (useBalancedPosition) {
+    window.setTimeout(() => setPageScroll(getTop()), 80);
+  }
+}
+
+function getBalancedDetailScrollTop() {
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
+  const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
+  const detailBody = document.querySelector(".detail-body");
+
+  let targetScroll = 0;
+
+  if (detailBody) {
+    const detailBodyTop = detailBody.getBoundingClientRect().top + currentScroll;
+    const preferredBodyTop = Math.min(560, Math.max(430, viewportHeight * 0.64));
+    targetScroll = detailBodyTop - preferredBodyTop;
+  }
+
+  if (els.photoCount) {
+    const photoCountBottom = els.photoCount.getBoundingClientRect().bottom + currentScroll;
+    const bottomPadding = 72;
+    targetScroll = Math.max(targetScroll, photoCountBottom - (viewportHeight - bottomPadding));
+  }
+
+  return Math.max(0, Math.round(targetScroll));
+}
+
+function setPageScroll(top) {
+  document.documentElement.scrollTop = top;
+  document.body.scrollTop = top;
+  window.scrollTo({ top, left: 0, behavior: "auto" });
+}
+
+function createPictureImg(defaultSizes = "") {
+  const picture = document.createElement("picture");
+  const source = document.createElement("source");
+  source.type = "image/webp";
+  picture.append(source);
+
+  const img = document.createElement("img");
+  if (defaultSizes) {
+    img.sizes = defaultSizes;
+  }
+
+  img.decoding = "async";
+  picture.append(img);
+
+  return { picture, source, img };
+}
+
+function stemFromCanonical(canonicalSrc) {
+  return String(canonicalSrc || "").trim().replace(/\.[^/.]+$/, "");
+}
+
+function getWebpSourceForImg(img) {
+  const pic = img.closest("picture");
+  return pic ? pic.querySelector('source[type="image/webp"]') : null;
+}
+
+function injectDynPreload(href, { id = "preload", fetchPriority = "low" } = {}) {
+  if (!href || !document.head) return;
+
+  const existing = document.head.querySelector(`link[data-dyn-preload="${id}"]`);
+  if (existing?.getAttribute("href") === href) return;
+  existing?.remove();
+
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "image";
+  link.href = href;
+  link.setAttribute("type", "image/webp");
+  link.setAttribute("data-dyn-preload", id);
+  if ("fetchPriority" in link) link.fetchPriority = fetchPriority;
+  document.head.appendChild(link);
+}
+
+async function scheduleLatestHeroCardPreload() {
+  const bird = getLatestBird();
+  if (!bird) return;
+
+  const canonical = await resolveImagePath(bird, 1);
+  if (!canonical) return;
+
+  injectDynPreload(`${stemFromCanonical(canonical)}-hero.webp`, {
+    id: "preload-latest-hero-card",
+    fetchPriority: "low",
+  });
+}
+
+function applyTieredImageSources(img, canonicalSrc, tier, sizes) {
+  img.onload = null;
+  img.onerror = null;
+
+  const stem = stemFromCanonical(canonicalSrc);
+
+  const revealBirdCardThumb = Boolean(img.closest(".bird-card__image"));
+
+  const markLoaded = () => {
+    if (revealBirdCardThumb) img.classList.add("is-loaded");
+  };
+
+  const markUnloaded = () => {
+    if (revealBirdCardThumb) img.classList.remove("is-loaded");
+  };
+
+  if (tier === IMAGE_TIER_FULL) {
+    getWebpSourceForImg(img)?.remove();
+    if (sizes !== undefined && sizes !== null) img.removeAttribute("sizes");
+    markUnloaded();
+    img.onload = markLoaded;
+    img.onerror = () => markUnloaded();
+    img.src = canonicalSrc;
+    return;
+  }
+
+  if (tier !== IMAGE_TIER_THUMB && tier !== IMAGE_TIER_CARD && tier !== IMAGE_TIER_HERO) {
+    applyTieredImageSources(img, canonicalSrc, IMAGE_TIER_FULL, "");
+    return;
+  }
+
+  const webpCandidate = `${stem}-${tier}.webp`;
+  const jpgDerivative = `${stem}-${tier}.jpg`;
+  markUnloaded();
+
+  const webpSource = getWebpSourceForImg(img);
+  if (webpSource) webpSource.srcset = webpCandidate;
+
+  if (typeof sizes === "string") {
+    img.sizes = sizes;
+  }
+
+  img.onload = markLoaded;
+  img.onerror = () => {
+    img.onerror = null;
+    getWebpSourceForImg(img)?.remove();
+
+    img.onload = markLoaded;
+    img.onerror = () => markUnloaded();
+    img.src = canonicalSrc;
+  };
+
+  img.src = jpgDerivative;
 }
 
 function hydrateImage(img, bird, index, options = {}) {
   if (!img || !bird) return;
 
+  delete img.__directCanonical;
   img.__bird = bird;
   img.__imageIndex = index;
+  img.__displayTier = typeof options.tier === "string" ? options.tier : IMAGE_TIER_THUMB;
+  img.__sizes = typeof options.sizes === "string" ? options.sizes : "";
 
-  const shouldLoadNow = options.priority || img.loading === "eager" || !lazyImageObserver;
+  if (typeof options.sizes === "string") {
+    img.sizes = img.__sizes;
+  }
+
+  const shouldLoadNow = Boolean(options.priority) || img.loading === "eager" || !lazyImageObserver;
   if (shouldLoadNow) {
-    hydrateImageNow(img, bird, index);
+    hydrateImageNow(img);
     return;
   }
 
   lazyImageObserver.observe(img);
 }
 
-function hydrateImageNow(img, bird, index) {
-  if (!img || !bird) return;
+function hydrateDetailThumb(img, canonicalFull, options = {}) {
+  if (!img || !canonicalFull) return;
 
-  resolveImagePath(bird, index).then((src) => {
+  delete img.__bird;
+  delete img.__imageIndex;
+  img.__directCanonical = canonicalFull;
+  img.__displayTier = IMAGE_TIER_HERO;
+  img.__sizes = typeof options.sizes === "string" ? options.sizes : IMG_SIZES_HERO_DETAIL;
+  img.sizes = img.__sizes;
+
+  const eager = Boolean(options.priority);
+  if (eager || !lazyImageObserver) {
+    hydrateImageNow(img);
+    return;
+  }
+
+  lazyImageObserver.observe(img);
+}
+
+function hydrateImageNow(img) {
+  if (!img) return;
+
+  if (typeof img.__directCanonical === "string" && img.__directCanonical.length) {
+    applyTieredImageSources(
+      img,
+      img.__directCanonical,
+      img.__displayTier,
+      img.__sizes
+    );
+
+    return;
+  }
+
+  const bird = img.__bird;
+  const imageIndex = img.__imageIndex;
+  if (!bird || imageIndex === undefined || imageIndex === null) return;
+
+  resolveImagePath(bird, imageIndex).then((src) => {
     if (!img.isConnected || !src) return;
-
-    img.onload = () => img.classList.add("is-loaded");
-    img.onerror = () => {
-      img.removeAttribute("src");
-      img.classList.remove("is-loaded");
-    };
-    img.src = src;
+    applyTieredImageSources(
+      img,
+      src,
+      img.__displayTier,
+      img.__sizes
+    );
   });
 }
 

@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="site-icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="site-icon-512.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="preload" as="image" href="Images/Rainbow_Bee_eater/1.jpg" fetchpriority="high" />
+  <link rel="preload" as="image" type="image/webp" href="Images/Rainbow_Bee_eater/1-hero.webp" fetchpriority="high" />
   <style>
     :root {
       --ink: #18211b;
@@ -55,6 +55,8 @@
     body.modal-open {
       overflow: hidden;
     }
+
+
 
     button,
     input,
@@ -106,6 +108,21 @@
       object-fit: cover;
       object-position: 38% 50%;
       filter: saturate(1.06) contrast(1.03);
+    }
+
+    .hero__image picture {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-card__image picture,
+    .detail-hero__image picture,
+    .feature-card picture,
+    .detail-gallery picture,
+    .bird-card__image picture {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     .hero::before {
@@ -621,15 +638,19 @@
     }
 
     .family-atlas__header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 24px;
       margin-bottom: 14px;
     }
 
-    .family-atlas__header h2 {
+    .family-atlas__title-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
       margin-bottom: 6px;
+    }
+
+    .family-atlas__header h2 {
+      margin: 0;
       font-size: 2rem;
       line-height: 1.05;
     }
@@ -639,6 +660,20 @@
       margin-bottom: 0;
       color: var(--muted);
       line-height: 1.55;
+    }
+
+    .family-atlas__toggle {
+      white-space: nowrap;
+    }
+
+    .family-atlas__panel[hidden] {
+      display: none;
+    }
+
+    .family-atlas__panel-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
     }
 
     .family-rail {
@@ -769,6 +804,10 @@
     .gallery-heading p {
       margin: 0;
       color: var(--muted);
+    }
+
+    #gallery-summary:empty {
+      display: none;
     }
 
     .result-count {
@@ -952,6 +991,17 @@
       pointer-events: auto;
       background: rgba(17, 24, 18, 0.46);
       backdrop-filter: blur(16px);
+    }
+
+    .detail-topbar__actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .detail-random-button {
+      margin-left: auto;
     }
 
     .detail-title {
@@ -1201,8 +1251,7 @@
 
       .controls__inner,
       .gallery-heading,
-      .section-heading,
-      .family-atlas__header {
+      .section-heading {
         grid-template-columns: 1fr;
         display: grid;
       }
@@ -1294,7 +1343,16 @@
   <div id="home-view">
     <header class="hero">
       <div class="hero__image" aria-hidden="true">
-        <img src="Images/Rainbow_Bee_eater/1.jpg" alt="" fetchpriority="high" decoding="async" />
+        <picture>
+          <source type="image/webp" srcset="Images/Rainbow_Bee_eater/1-hero.webp" />
+          <img
+            src="Images/Rainbow_Bee_eater/1-hero.jpg"
+            sizes="100vw"
+            alt=""
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
       </div>
 
       <nav class="topbar shell" aria-label="Primary">
@@ -1314,7 +1372,7 @@
           <h1><span class="hero-title__line">oliver.bird.photography</span><span class="hero-title__line">Life list</span></h1>
           <p class="hero__lede"><a href="https://www.instagram.com/oliver.bird.photography/" target="_blank" rel="noopener">https://www.instagram.com/oliver.bird.photography/</a></p>
           <div class="hero__actions">
-            <a class="solid-button" href="#gallery">Start exploring</a>
+            <a class="solid-button" href="#gallery">Browse gallery</a>
             <button class="ghost-button" type="button" id="latest-bird-button">Newest lifer</button>
           </div>
           <div class="hero__stats" aria-label="Collection summary">
@@ -1335,7 +1393,17 @@
 
         <button class="hero-card" type="button" id="hero-feature-card">
           <div class="hero-card__image">
-            <img id="hero-feature-img" src="Images/Great_Egret/1.jpg" alt="" fetchpriority="high" decoding="async" />
+            <picture>
+              <source type="image/webp" />
+              <img
+                id="hero-feature-img"
+                src=""
+                sizes="(max-width: 1160px) min(620px, 92vw), 380px"
+                alt=""
+                fetchpriority="high"
+                decoding="async"
+              />
+            </picture>
           </div>
           <div class="hero-card__body">
             <div class="hero-card__label">Newest Lifer</div>
@@ -1346,30 +1414,19 @@
       </div>
     </header>
 
-    <main id="gallery">
-      <section class="shell">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Recent discoveries</p>
-            <h2>Fresh from the notebook</h2>
-          </div>
-          <p>Start with the newest entries, or jump into a bright favourite from the archive.</p>
-        </div>
-        <div class="featured-grid" id="featured-grid"></div>
-      </section>
-
+    <main>
       <section class="insights shell" aria-label="Collection insights">
         <div class="insight-panel">
           <h3>Sightings by month</h3>
           <div class="timeline-bars" id="timeline-bars"></div>
         </div>
         <div class="insight-panel">
-          <h3>Most visited spots</h3>
+          <h3>Most Lifer Locations</h3>
           <ul class="site-list" id="site-list"></ul>
         </div>
       </section>
 
-      <section class="controls" aria-label="Gallery controls">
+      <section class="controls" id="gallery" aria-label="Gallery controls">
         <div class="shell controls__inner">
           <label class="search-box" for="search-input">
             <span aria-hidden="true">&#8981;</span>
@@ -1400,22 +1457,27 @@
 
       <section class="family-atlas shell" aria-label="Bird families">
         <div class="family-atlas__header">
-          <div>
-            <p class="eyebrow">eBird/Clements taxonomy</p>
+          <p class="eyebrow">eBird/Clements taxonomy</p>
+          <div class="family-atlas__title-row">
             <h2>Family atlas</h2>
-            <p>Browse the life list by scientific family, with the gallery tags following the same family assignments.</p>
+            <button class="filter-chip family-atlas__toggle" type="button" id="family-atlas-toggle" aria-expanded="false" aria-controls="family-atlas-panel">Show family atlas</button>
           </div>
-          <button class="filter-chip" type="button" id="family-reset-button">All families</button>
+          <p>Browse the life list by scientific family, with the gallery tags following the same family assignments.</p>
         </div>
-        <div class="family-rail" id="family-rail"></div>
+        <div class="family-atlas__panel" id="family-atlas-panel" hidden>
+          <div class="family-atlas__panel-actions">
+            <button class="filter-chip" type="button" id="family-reset-button">All families</button>
+          </div>
+          <div class="family-rail" id="family-rail"></div>
+        </div>
       </section>
 
       <section class="shell">
         <div class="gallery-heading">
           <div>
             <p class="eyebrow">All sightings</p>
-            <h2>Browse the flock</h2>
-            <p id="gallery-summary">Every bird in the collection.</p>
+            <h2>Gallery</h2>
+            <p id="gallery-summary"></p>
           </div>
           <div class="result-count" id="result-count">0 birds</div>
         </div>
@@ -1428,11 +1490,15 @@
   <section id="bird-detail-page" class="detail hidden" aria-live="polite">
     <div class="detail-hero">
       <div class="detail-hero__image" aria-hidden="true">
-        <img id="detail-hero-img" src="" alt="" />
+        <picture>
+          <source type="image/webp" />
+          <img id="detail-hero-img" src="" sizes="100vw" alt="" decoding="async" fetchpriority="high" />
+        </picture>
       </div>
       <div class="detail-topbar">
-        <div class="shell">
+        <div class="shell detail-topbar__actions">
           <button class="ghost-button" type="button" id="back-button">&#8592; Gallery</button>
+          <button class="ghost-button detail-random-button hidden" type="button" id="detail-random-bird-button">Random sighting</button>
         </div>
       </div>
       <div class="detail-title shell">

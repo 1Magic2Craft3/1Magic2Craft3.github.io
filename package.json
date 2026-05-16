@@ -1,0 +1,10 @@
+{
+  "name": "bird-life-list-site",
+  "private": true,
+  "scripts": {
+    "build:images": "node scripts/generate-image-variants.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
