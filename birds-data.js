@@ -1326,5 +1326,30 @@ const birds = [
     "location": "Boomerang Road | AU-QLD",
     "description": "",
     "images": []
+   },
+   {
+    "id": 167,
+    "name": "Wedge-tailed Eagle",
+    "dateFirstSeen": "09 Jun 2026",
+    "location": "59 Rose Dr, Mount Annan AU-NSW -34.05886, 150.76872 | AU-NSW",
+    "description": "",
+    "noPhotos": true,
+    "images": []
+   },
+   {
+    "id": 168,
+    "name": "Jacky-Winter",
+    "dateFirstSeen": "08 Jul 2026",
+    "location": "Mount Annan Botanic Gardens--Sundial Walk | AU-NSW",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 169,
+    "name": "Graylag Goose",
+    "dateFirstSeen": "30 Jul 2026",
+    "location": "Centennial Park (Sydney) | AU-NSW",
+    "description": "",
+    "images": []
    }
 ];

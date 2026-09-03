@@ -254,6 +254,9 @@ const speciesFamilies = {
   "Scaly-breasted Lorikeet": "psittaculidae",
   "Noisy Friarbird": "meliphagidae",
   "Varied Sittella": "neosittidae",
+  "Wedge-tailed Eagle": "accipitridae",
+  "Jacky-Winter": "petroicidae",
+  "Graylag Goose": "anatidae",
 };
 
 const imagePathCache = new Map();
@@ -457,7 +460,10 @@ function cleanSiteLabel(value) {
     .replace(/\s+(AU|JP)-[A-Z0-9-]+.*$/i, "")
     .trim();
 
-  const englishMatch = label.match(/\(([^()]*[A-Za-z][^()]*)\)\s*$/);
+  const hasJapaneseCharacters = /[\u3040-\u30ff\u3400-\u9fff]/.test(label);
+  const englishMatch = hasJapaneseCharacters
+    ? label.match(/\(([^()]*[A-Za-z][^()]*)\)\s*$/)
+    : null;
   if (englishMatch) return englishMatch[1].trim();
 
   return label
@@ -892,13 +898,16 @@ function renderDetailGallery(bird, images) {
     button.setAttribute("aria-label", `Open ${bird.name} photo ${index + 1}`);
 
     const img = document.createElement("img");
-    img.src = src;
     img.alt = `${bird.name} photo ${index + 1}`;
     img.loading = index < 6 ? "eager" : "lazy";
     img.decoding = "async";
     img.fetchPriority = index < 3 ? "high" : "low";
 
     button.append(img);
+    setImageState(img, "loading");
+    img.onload = () => setImageState(img, "loaded");
+    img.onerror = () => setImageState(img, "missing");
+    img.src = src;
     button.addEventListener("click", () => openModal(images, index, bird));
     els.detailGallery.append(button);
   });
@@ -1096,19 +1105,42 @@ function hydrateImage(img, bird, index, options = {}) {
 function hydrateImageNow(img, bird, index) {
   if (!img || !bird) return;
 
-  resolveImagePath(bird, index).then((src) => {
-    if (!img.isConnected || !src) return;
+  const requestKey = `${bird.id}:${index}`;
+  img.__imageRequestKey = requestKey;
+  setImageState(img, "loading");
+  img.removeAttribute("src");
 
-    img.onload = () => img.classList.add("is-loaded");
+  resolveImagePath(bird, index).then((src) => {
+    if (!img.isConnected || img.__imageRequestKey !== requestKey) return;
+
+    if (!src) {
+      setImageState(img, "missing");
+      return;
+    }
+
+    img.onload = () => setImageState(img, "loaded");
     img.onerror = () => {
       img.removeAttribute("src");
-      img.classList.remove("is-loaded");
+      setImageState(img, "missing");
     };
     img.src = src;
   });
 }
 
+function setImageState(img, state) {
+  img.classList.toggle("is-loaded", state === "loaded");
+  img.classList.toggle("is-image-loading", state === "loading");
+
+  const frame = img.parentElement;
+  if (!frame) return;
+
+  frame.classList.toggle("is-image-loading", state === "loading");
+  frame.classList.toggle("is-image-missing", state === "missing");
+}
+
 function resolveImagePath(bird, index) {
+  if (bird.noPhotos) return Promise.resolve(null);
+
   const directImage = Array.isArray(bird.images) ? bird.images[index - 1] : null;
   if (directImage) return Promise.resolve(directImage);
 
@@ -1143,6 +1175,11 @@ function tryImageCandidate(candidates, index, resolve) {
 
 async function collectBirdImages(bird) {
   if (galleryImageCache.has(bird.id)) return galleryImageCache.get(bird.id);
+
+  if (bird.noPhotos) {
+    galleryImageCache.set(bird.id, []);
+    return [];
+  }
 
   if (Array.isArray(bird.images) && bird.images.length) {
     galleryImageCache.set(bird.id, bird.images);

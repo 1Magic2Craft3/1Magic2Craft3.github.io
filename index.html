@@ -78,6 +78,67 @@
       content-visibility: auto;
     }
 
+    .hero-card__image,
+    .feature-card,
+    .bird-card__image,
+    .detail-hero__image,
+    .detail-gallery button {
+      --image-loading-base: #dce7d6;
+      --image-loading-sheen: rgba(255, 253, 248, 0.72);
+    }
+
+    .hero-card__image,
+    .feature-card,
+    .detail-hero__image,
+    .detail-gallery button {
+      --image-loading-base: #203f2c;
+      --image-loading-sheen: rgba(255, 253, 248, 0.12);
+    }
+
+    .hero-card__image.is-image-loading,
+    .feature-card.is-image-loading,
+    .bird-card__image.is-image-loading,
+    .detail-hero__image.is-image-loading,
+    .detail-gallery button.is-image-loading {
+      background-color: var(--image-loading-base);
+      background-image: linear-gradient(
+        105deg,
+        transparent 34%,
+        var(--image-loading-sheen) 48%,
+        transparent 62%
+      );
+      background-size: 240% 100%;
+      animation: image-loading-sheen 1.8s ease-in-out infinite;
+    }
+
+    img.is-image-loading {
+      opacity: 0;
+    }
+
+    .hero-card__image.is-image-missing,
+    .feature-card.is-image-missing,
+    .bird-card__image.is-image-missing,
+    .detail-hero__image.is-image-missing,
+    .detail-gallery button.is-image-missing {
+      background-color: var(--image-loading-base);
+      background-image: none;
+    }
+
+    @keyframes image-loading-sheen {
+      from { background-position: 120% 0; }
+      to { background-position: -120% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-card__image.is-image-loading,
+      .feature-card.is-image-loading,
+      .bird-card__image.is-image-loading,
+      .detail-hero__image.is-image-loading,
+      .detail-gallery button.is-image-loading {
+        animation: none;
+      }
+    }
+
     .hidden {
       display: none !important;
     }
@@ -1369,7 +1430,7 @@
 
         <button class="hero-card" type="button" id="hero-feature-card">
           <div class="hero-card__image">
-            <img id="hero-feature-img" src="Images/Great_Egret/1.jpg" alt="" fetchpriority="high" decoding="async" />
+            <img id="hero-feature-img" alt="" fetchpriority="high" decoding="async" />
           </div>
           <div class="hero-card__body">
             <div class="hero-card__label">Newest Lifer</div>
@@ -1387,7 +1448,7 @@
           <div class="timeline-bars" id="timeline-bars"></div>
         </div>
         <div class="insight-panel">
-          <h3>Most visited spots</h3>
+          <h3>Most Lifers</h3>
           <ul class="site-list" id="site-list"></ul>
         </div>
       </section>
