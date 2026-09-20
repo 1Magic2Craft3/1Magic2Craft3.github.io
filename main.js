@@ -29,7 +29,9 @@ const familyDefinitions = [
   { id: "columbidae", scientific: "Columbidae", common: "Pigeons and Doves", accent: "#8d7595" },
   { id: "cuculidae", scientific: "Cuculidae", common: "Cuckoos", accent: "#697d3f" },
   { id: "podargidae", scientific: "Podargidae", common: "Frogmouths", accent: "#746658" },
+  { id: "tytonidae", scientific: "Tytonidae", common: "Barn-Owls", accent: "#8a765d" },
   { id: "strigidae", scientific: "Strigidae", common: "Owls", accent: "#6f604b" },
+  { id: "sulidae", scientific: "Sulidae", common: "Boobies and Gannets", accent: "#4b7f98" },
   { id: "anhingidae", scientific: "Anhingidae", common: "Anhingas", accent: "#284b50" },
   { id: "phalacrocoracidae", scientific: "Phalacrocoracidae", common: "Cormorants and Shags", accent: "#24414d" },
   { id: "pelecanidae", scientific: "Pelecanidae", common: "Pelicans", accent: "#4d7185" },
@@ -39,6 +41,7 @@ const familyDefinitions = [
   { id: "pandionidae", scientific: "Pandionidae", common: "Osprey", accent: "#476b78" },
   { id: "falconidae", scientific: "Falconidae", common: "Falcons and Caracaras", accent: "#b55a32" },
   { id: "rallidae", scientific: "Rallidae", common: "Rails, Gallinules, and Coots", accent: "#465c64" },
+  { id: "haematopodidae", scientific: "Haematopodidae", common: "Oystercatchers", accent: "#9b4f42" },
   { id: "charadriidae", scientific: "Charadriidae", common: "Plovers and Lapwings", accent: "#8b7c53" },
   { id: "scolopacidae", scientific: "Scolopacidae", common: "Sandpipers and Allies", accent: "#99794d" },
   { id: "laridae", scientific: "Laridae", common: "Gulls, Terns, and Skimmers", accent: "#6f92a0" },
@@ -257,6 +260,10 @@ const speciesFamilies = {
   "Wedge-tailed Eagle": "accipitridae",
   "Jacky-Winter": "petroicidae",
   "Graylag Goose": "anatidae",
+  "Eastern Barn Owl": "tytonidae",
+  "Australasian Gannet": "sulidae",
+  "Great Crested Tern": "laridae",
+  "Sooty Oystercatcher": "haematopodidae",
 };
 
 const imagePathCache = new Map();

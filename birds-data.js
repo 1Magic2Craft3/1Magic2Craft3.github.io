@@ -1351,5 +1351,41 @@ const birds = [
     "location": "Centennial Park (Sydney) | AU-NSW",
     "description": "",
     "images": []
+   },
+   {
+    "id": 170,
+    "name": "Eastern Barn Owl",
+    "dateFirstSeen": "19 Sep 2026",
+    "location": "Centennial Park (Sydney) | AU-NSW",
+    "description": "",
+    "noPhotos": true,
+    "images": []
+   },
+   {
+    "id": 171,
+    "name": "Australasian Gannet",
+    "dateFirstSeen": "19 Sep 2026",
+    "location": "Kamay Botany Bay National Park (North) | AU-NSW",
+    "description": "",
+    "noPhotos": true,
+    "images": []
+   },
+   {
+    "id": 172,
+    "name": "Great Crested Tern",
+    "dateFirstSeen": "19 Sep 2026",
+    "location": "Kamay Botany Bay National Park (North) | AU-NSW",
+    "description": "",
+    "noPhotos": true,
+    "images": []
+   },
+   {
+    "id": 173,
+    "name": "Sooty Oystercatcher",
+    "dateFirstSeen": "19 Sep 2026",
+    "location": "Kamay Botany Bay National Park (North) | AU-NSW",
+    "description": "",
+    "noPhotos": true,
+    "images": []
    }
 ];
