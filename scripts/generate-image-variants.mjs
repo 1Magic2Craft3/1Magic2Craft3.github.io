@@ -1,111 +1,110 @@
-/**
- * Builds responsive WebP + JPEG derivatives next to original files under Images/<folder>/.
- * Numeric originals like 1.jpg become 1-thumb.webp, 1-thumb.jpg, and similar card/hero sizes.
- */
+import fs from "node:fs/promises";
+import path from "node:path";
 import sharp from "sharp";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import { generateImageManifest } from "./generate-image-manifest.mjs";
+import { REPO_ROOT, IMAGES_ROOT, GENERATED_IMAGES_ROOT, IMAGE_VARIANTS, listOriginalPhotos, orientedDimensions, variantsForWidth } from "./image-settings.mjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "..");
-const IMAGES_ROOT = path.join(REPO_ROOT, "Images");
+const settingsFile = path.join(REPO_ROOT, "generated", "image-settings.json");
+const settings = { version: 1, format: "webp", effort: 4, variants: IMAGE_VARIANTS };
+sharp.concurrency(2);
 
-const VARIANTS = [
-  { suffix: "thumb", width: 520 },
-  { suffix: "card", width: 1040 },
-  { suffix: "hero", width: 1920 },
-];
-
-const ORIGINAL_RE = /^(\d+)\.(jpe?g|png)$/i;
-
-async function exists(p) {
+async function validCachedImage(output, expectedWidth, sourceModified) {
   try {
-    await fs.access(p);
-    return true;
+    const stat = await fs.stat(output);
+    if (stat.mtimeMs < sourceModified) return false;
+    const metadata = await sharp(output).metadata();
+    return metadata.format === "webp" && metadata.width === expectedWidth && metadata.height > 0;
   } catch {
     return false;
   }
 }
 
-async function processOriginal(filePath, baseNameWithoutExt) {
-  const dir = path.dirname(filePath);
-  const stemPath = path.join(dir, baseNameWithoutExt);
-
-  let metaWidth;
-  try {
-    const meta = await sharp(filePath).rotate().metadata();
-    metaWidth = meta.width ?? 1;
-  } catch (err) {
-    console.warn(`Skipping (unreadable): ${filePath}`, err.message);
-    return;
-  }
-
-  for (const { suffix, width: maxWidth } of VARIANTS) {
-    const outWebp = `${stemPath}-${suffix}.webp`;
-    const outJpg = `${stemPath}-${suffix}.jpg`;
-
-    if ((await exists(outWebp)) && (await exists(outJpg))) {
-      console.log(`SKIP ${baseNameWithoutExt}-${suffix}: already exists`);
-      continue;
-    }
-
-    try {
-      const pipelineBase = sharp(filePath).rotate();
-      let resize = pipelineBase;
-      if (metaWidth > maxWidth) {
-        resize = pipelineBase.resize({ width: maxWidth, fit: "inside", withoutEnlargement: true });
+async function buildImages(photos, settingsUnchanged) {
+  const wanted = new Set();
+  let cursor = 0, completed = 0, built = 0, reused = 0;
+  async function worker() {
+    while (cursor < photos.length) {
+      const photo = photos[cursor++];
+      const metadata = await sharp(photo.input).metadata();
+      const { width } = orientedDimensions(metadata);
+      if (!width) throw new Error("Cannot read photo dimensions: " + photo.input);
+      const sourceModified = (await fs.stat(photo.input)).mtimeMs;
+      const outputFolder = path.join(GENERATED_IMAGES_ROOT, photo.folder);
+      await fs.mkdir(outputFolder, { recursive: true });
+      for (const variant of variantsForWidth(width)) {
+        const output = path.join(outputFolder, photo.index + "-" + variant.suffix + ".webp");
+        wanted.add(output);
+        if (settingsUnchanged && await validCachedImage(output, Math.min(width, variant.width), sourceModified)) {
+          reused += 1;
+          continue;
+        }
+        const temporary = output + ".tmp-" + process.pid;
+        try {
+          await sharp(photo.input).rotate()
+            .resize({ width: variant.width, withoutEnlargement: true })
+            .webp({ quality: variant.quality, effort: settings.effort })
+            .toFile(temporary);
+          await fs.rename(temporary, output);
+          built += 1;
+        } finally {
+          await fs.rm(temporary, { force: true });
+        }
       }
-
-      await resize
-        .clone()
-        .webp({ quality: 78, effort: 5 })
-        .toFile(outWebp);
-
-      await resize
-        .clone()
-        .jpeg({ quality: 82, mozjpeg: true, chromaSubsampling: "4:4:4" })
-        .toFile(outJpg);
-
-      console.log(`OK ${baseNameWithoutExt}-${suffix}: ${path.relative(REPO_ROOT, outWebp)}`);
-    } catch (err) {
-      console.warn(`Failed variant ${suffix} for ${filePath}:`, err.message);
+      completed += 1;
+      if (completed % 40 === 0 || completed === photos.length) console.log("Processed " + completed + "/" + photos.length + " photos.");
     }
   }
+  // Bound memory and CPU use when decoding large camera originals.
+  const results = await Promise.allSettled([worker(), worker()]);
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure) throw failure.reason;
+  return { wanted, built, reused };
 }
 
-async function walkImagesDir(dirPath) {
-  let entries;
-  try {
-    entries = await fs.readdir(dirPath, { withFileTypes: true });
-  } catch {
-    return;
+async function removeObsoleteImages(photos, wanted) {
+  let removed = 0, removedBytes = 0;
+  // Only remove known generated names backed by a retained original.
+  const originals = new Map();
+  for (const photo of photos) {
+    if (!originals.has(photo.folder)) originals.set(photo.folder, new Set());
+    originals.get(photo.folder).add(photo.index);
   }
-
-  for (const entry of entries) {
-    const full = path.join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      await walkImagesDir(full);
-      continue;
+  for (const [folder, indexes] of originals) {
+    const directory = path.join(IMAGES_ROOT, folder);
+    for (const name of await fs.readdir(directory)) {
+      const match = /^(\d+)-(thumb|card|hero)\.(webp|jpe?g)$/i.exec(name);
+      if (!match || !indexes.has(Number(match[1]))) continue;
+      const file = path.join(directory, name);
+      removedBytes += (await fs.stat(file)).size;
+      await fs.unlink(file);
+      removed += 1;
     }
-    const match = ORIGINAL_RE.exec(entry.name);
-    if (!match) continue;
-
-    const baseNameWithoutExt = path.basename(entry.name, path.extname(entry.name));
-
-    await processOriginal(full, baseNameWithoutExt);
   }
+  for (const folder of await fs.readdir(GENERATED_IMAGES_ROOT, { withFileTypes: true })) {
+    if (!folder.isDirectory()) continue;
+    const directory = path.join(GENERATED_IMAGES_ROOT, folder.name);
+    for (const name of await fs.readdir(directory)) {
+      const file = path.join(directory, name);
+      if (!/^\d+-(small|large)\.webp$/.test(name) || wanted.has(file)) continue;
+      removedBytes += (await fs.stat(file)).size;
+      await fs.unlink(file);
+      removed += 1;
+    }
+    if (!(await fs.readdir(directory)).length) await fs.rmdir(directory);
+  }
+  return { removed, removedBytes };
 }
 
 async function main() {
-  if (!(await exists(IMAGES_ROOT))) {
-    console.error(`Missing Images folder: ${IMAGES_ROOT}`);
-    process.exitCode = 1;
-    return;
-  }
-
-  await walkImagesDir(IMAGES_ROOT);
-  console.log("Image variants generation finished.");
+  const photos = await listOriginalPhotos();
+  if (!photos.length) throw new Error("No numeric original photos found in Images/<species>/.");
+  const previousSettings = await fs.readFile(settingsFile, "utf8").catch(() => "");
+  const result = await buildImages(photos, previousSettings === JSON.stringify(settings));
+  // Validate every new image and atomically update the catalog before cleanup.
+  await generateImageManifest();
+  const cleanup = await removeObsoleteImages(photos, result.wanted);
+  await fs.writeFile(settingsFile, JSON.stringify(settings));
+  console.log(JSON.stringify({ photos: photos.length, generatedFiles: result.wanted.size, built: result.built, reused: result.reused, ...cleanup }));
 }
 
-main();
+main().catch((error) => { console.error(error); process.exitCode = 1; });

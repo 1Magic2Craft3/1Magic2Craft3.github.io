@@ -1387,5 +1387,53 @@ const birds = [
     "description": "",
     "noPhotos": true,
     "images": []
+   },
+   {
+    "id": 174,
+    "name": "Little Friarbird",
+    "dateFirstSeen": "26 Sep 2026",
+    "location": "Boomerang Road | AU-QLD",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 175,
+    "name": "Powerful Owl",
+    "dateFirstSeen": "17 Oct 2026",
+    "location": "Lane Cove National Park--Devlins Creek | AU-NSW",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 176,
+    "name": "Pied Stilt",
+    "dateFirstSeen": "31 Oct 2026",
+    "location": "Sydney Olympic Park--Waterbird Refuge | AU-NSW",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 177,
+    "name": "Red-necked Avocet",
+    "dateFirstSeen": "31 Oct 2026",
+    "location": "Sydney Olympic Park--Waterbird Refuge | AU-NSW",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 178,
+    "name": "Bar-tailed Godwit",
+    "dateFirstSeen": "31 Oct 2026",
+    "location": "Sydney Olympic Park--Waterbird Refuge | AU-NSW",
+    "description": "",
+    "images": []
+   },
+   {
+    "id": 179,
+    "name": "Sharp-tailed Sandpiper",
+    "dateFirstSeen": "31 Oct 2026",
+    "location": "Sydney Olympic Park--Waterbird Refuge | AU-NSW",
+    "description": "",
+    "images": []
    }
 ];

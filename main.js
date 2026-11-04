@@ -13,14 +13,6 @@ const MONTHS = {
   Dec: 11,
 };
 
-const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG"];
-const DEFAULT_IMAGE_EXTENSION = ".jpg";
-const MAX_DETAIL_IMAGES = 50;
-const IMAGE_OBSERVER_ROOT_MARGIN = "700px 0px";
-const DETAIL_IMAGE_PROBE_BATCH = 6;
-
-const FAMILY_SOURCE = "eBird/Clements Checklist v2025, eBird Taxonomy v2025-4";
-
 const familyDefinitions = [
   { id: "anatidae", scientific: "Anatidae", common: "Ducks, Geese, and Waterfowl", accent: "#2e6f70" },
   { id: "megapodiidae", scientific: "Megapodiidae", common: "Megapodes", accent: "#7a5a33" },
@@ -42,6 +34,7 @@ const familyDefinitions = [
   { id: "falconidae", scientific: "Falconidae", common: "Falcons and Caracaras", accent: "#b55a32" },
   { id: "rallidae", scientific: "Rallidae", common: "Rails, Gallinules, and Coots", accent: "#465c64" },
   { id: "haematopodidae", scientific: "Haematopodidae", common: "Oystercatchers", accent: "#9b4f42" },
+  { id: "recurvirostridae", scientific: "Recurvirostridae", common: "Stilts and Avocets", accent: "#8b7c53" },
   { id: "charadriidae", scientific: "Charadriidae", common: "Plovers and Lapwings", accent: "#8b7c53" },
   { id: "scolopacidae", scientific: "Scolopacidae", common: "Sandpipers and Allies", accent: "#99794d" },
   { id: "laridae", scientific: "Laridae", common: "Gulls, Terns, and Skimmers", accent: "#6f92a0" },
@@ -264,150 +257,13 @@ const speciesFamilies = {
   "Australasian Gannet": "sulidae",
   "Great Crested Tern": "laridae",
   "Sooty Oystercatcher": "haematopodidae",
+  "Little Friarbird": "meliphagidae",
+  "Powerful Owl": "strigidae",
+  "Pied Stilt": "recurvirostridae",
+  "Red-necked Avocet": "recurvirostridae",
+  "Bar-tailed Godwit": "scolopacidae",
+  "Sharp-tailed Sandpiper": "scolopacidae",
 };
-
-const imagePathCache = new Map();
-const galleryImageCache = new Map();
-let lazyImageObserver = null;
-
-const state = {
-  allBirds: [],
-  filteredBirds: [],
-  query: "",
-  region: "all",
-  family: "all",
-  sort: "dateDesc",
-  activeBird: null,
-  lastGalleryScroll: 0,
-  detailReturnTarget: "gallery",
-  randomDetailMode: false,
-  familyAtlasOpen: false,
-  modalImages: [],
-  modalIndex: 0,
-};
-
-const els = {};
-
-document.addEventListener("DOMContentLoaded", init);
-
-function init() {
-  if ("scrollRestoration" in history) {
-    history.scrollRestoration = "manual";
-  }
-
-  cacheElements();
-  setupLazyImageObserver();
-  state.allBirds = birds.map(enrichBird);
-
-  renderHero();
-  renderInsights();
-  renderRegionFilters();
-  renderFamilyControls();
-  bindEvents();
-  applyFilters();
-  syncFromHash(false);
-}
-
-function cacheElements() {
-  els.homeView = document.getElementById("home-view");
-  els.detailPage = document.getElementById("bird-detail-page");
-  els.grid = document.getElementById("main-page");
-  els.emptyState = document.getElementById("empty-state");
-  els.searchInput = document.getElementById("search-input");
-  els.sortSelect = document.getElementById("sort-select");
-  els.resultCount = document.getElementById("result-count");
-  els.gallerySummary = document.getElementById("gallery-summary");
-  els.regionFilters = document.getElementById("region-filters");
-  els.familySelect = document.getElementById("family-select");
-  els.familyRail = document.getElementById("family-rail");
-  els.familyResetButton = document.getElementById("family-reset-button");
-  els.familyAtlasToggle = document.getElementById("family-atlas-toggle");
-  els.familyAtlasPanel = document.getElementById("family-atlas-panel");
-  els.featuredGrid = document.getElementById("featured-grid");
-  els.timelineBars = document.getElementById("timeline-bars");
-  els.siteList = document.getElementById("site-list");
-  els.statSpecies = document.getElementById("stat-species");
-  els.statRegions = document.getElementById("stat-regions");
-  els.statFamilies = document.getElementById("stat-families");
-  els.heroFeatureCard = document.getElementById("hero-feature-card");
-  els.heroFeatureImg = document.getElementById("hero-feature-img");
-  els.heroFeatureName = document.getElementById("hero-feature-name");
-  els.heroFeatureMeta = document.getElementById("hero-feature-meta");
-  els.randomBirdButton = document.getElementById("random-bird-button");
-  els.latestBirdButton = document.getElementById("latest-bird-button");
-  els.backButton = document.getElementById("back-button");
-  els.detailRandomBirdButton = document.getElementById("detail-random-bird-button");
-  els.detailHeroImg = document.getElementById("detail-hero-img");
-  els.detailGroup = document.getElementById("detail-group");
-  els.birdName = document.getElementById("bird-name");
-  els.birdDescription = document.getElementById("bird-description");
-  els.birdDate = document.getElementById("bird-date");
-  els.birdLocation = document.getElementById("bird-location");
-  els.birdRegion = document.getElementById("bird-region");
-  els.photoCount = document.getElementById("photo-count");
-  els.detailGallery = document.getElementById("bird-carousel");
-  els.modal = document.getElementById("image-modal");
-  els.modalImg = document.getElementById("modal-img");
-  els.modalCaption = document.getElementById("modal-caption");
-  els.closeModal = document.getElementById("close-modal");
-  els.modalPrev = document.getElementById("modal-prev");
-  els.modalNext = document.getElementById("modal-next");
-}
-
-function bindEvents() {
-  els.searchInput.addEventListener("input", () => {
-    state.query = els.searchInput.value.trim().toLowerCase();
-    applyFilters();
-  });
-
-  els.sortSelect.addEventListener("change", () => {
-    state.sort = els.sortSelect.value;
-    applyFilters();
-  });
-
-  els.familySelect.addEventListener("change", () => {
-    setFamilyFilter(els.familySelect.value);
-  });
-
-  if (els.familyResetButton) {
-    els.familyResetButton.addEventListener("click", () => {
-      setFamilyFilter("all");
-    });
-  }
-
-  if (els.familyAtlasToggle && els.familyAtlasPanel) {
-    els.familyAtlasToggle.addEventListener("click", () => toggleFamilyAtlas());
-  }
-
-
-  els.randomBirdButton.addEventListener("click", openRandomBird);
-  if (els.detailRandomBirdButton) {
-    els.detailRandomBirdButton.addEventListener("click", openRandomBird);
-  }
-  els.latestBirdButton.addEventListener("click", openNewestLifer);
-  els.heroFeatureCard.addEventListener("click", openNewestLifer);
-  els.backButton.addEventListener("click", handleDetailBack);
-  els.closeModal.addEventListener("click", closeModal);
-  els.modalPrev.addEventListener("click", () => shiftModal(-1));
-  els.modalNext.addEventListener("click", () => shiftModal(1));
-
-  els.modal.addEventListener("click", (event) => {
-    if (event.target === els.modal) {
-      closeModal();
-    }
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (els.modal.hidden) return;
-
-    if (event.key === "Escape") closeModal();
-    if (event.key === "ArrowLeft") shiftModal(-1);
-    if (event.key === "ArrowRight") shiftModal(1);
-  });
-
-  window.addEventListener("popstate", () => syncFromHash(false));
-}
-
 
 function enrichBird(bird) {
   const seenDate = parseSeenDate(bird.dateFirstSeen);
@@ -510,737 +366,436 @@ function getFamilyForBird(bird) {
   };
 }
 
-function getLatestBird() {
-  return [...state.allBirds].sort((a, b) => b.timestamp - a.timestamp)[0];
+const PAGE_SIZE = 8;
+const catalogByFolder = new Map(Object.entries(imageCatalog).map(([folder, photos]) => [folder.toLowerCase(), photos]));
+const freshFilters = (sort = "dateDesc") => ({ query: "", region: "all", sort, pageIndex: 0 });
+const state = {
+  allBirds: [], album: [], visibleAlbum: [], filteredBirds: [], page: "life",
+  filters: { life: freshFilters(), album: freshFilters("selected") },
+  selectedBird: null, activeBird: null, modalItems: [], modalIndex: 0,
+};
+const els = {};
+const filters = () => state.filters[state.page];
+
+document.addEventListener("DOMContentLoaded", init);
+
+function init() {
+  for (const id of ["home-view", "bird-detail-page", "search-input", "sort-select", "region-filters", "bird-list", "result-count", "empty-state", "list-previous", "list-next", "list-page-label", "life-page", "album-page", "album-photos", "album-count", "album-empty", "selected-bird-button", "selected-bird-image", "selected-bird-name", "bird-name", "bird-date", "bird-location", "bird-region", "detail-group", "bird-description", "photo-count", "bird-carousel", "image-modal", "modal-img", "modal-caption", "modal-position", "announcement"]) {
+    els[id] = document.getElementById(id);
+  }
+  state.allBirds = birds.map(enrichBird);
+  state.selectedBird = state.allBirds.find((bird) => bird.name === "Rainbow Bee-eater") || state.allBirds[0];
+  state.album = albumPicks.flatMap((pick) => {
+    const bird = state.allBirds.find((item) => item.name === pick.name);
+    const photo = bird && photosForBird(bird).find((item) => item.index === pick.photo);
+    return photo ? [{ bird, photo }] : [];
+  });
+  bindEvents();
+  renderInsights();
+  syncFromHash();
 }
 
-function renderHero() {
-  const latestBird = getLatestBird();
-  const regions = new Set(state.allBirds.map((bird) => bird.region));
-  const familyCount = new Set(state.allBirds.map((bird) => bird.familyId)).size;
-
-  els.statSpecies.textContent = state.allBirds.length;
-  els.statRegions.textContent = regions.size;
-  els.statFamilies.textContent = familyCount;
-  els.heroFeatureName.textContent = latestBird.name;
-  els.heroFeatureMeta.textContent = `${latestBird.primarySite} | ${formatSeenDate(latestBird)}`;
-  hydrateImage(els.heroFeatureImg, latestBird, 1, { priority: true });
-}
-
-function renderFeatured() {
-  const latest = getLatestBird();
-  const picks = uniqueBirds([
-    latest,
-    findBirdByName("Rainbow Bee-eater"),
-    findBirdByName("Common Kingfisher"),
-  ]);
-
-  const labels = ["Newest lifer", "Colour hit", "Archive"];
-  els.featuredGrid.innerHTML = "";
-
-  picks.forEach((bird, index) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "feature-card";
-    card.addEventListener("click", () => openBird(bird.id));
-
-    const img = document.createElement("img");
-    img.alt = bird.name;
-    img.loading = index === 0 ? "eager" : "lazy";
-    img.decoding = "async";
-    if (index === 0) img.fetchPriority = "high";
-
-    const copy = document.createElement("div");
-    copy.className = "feature-card__copy";
-    copy.innerHTML = `
-      <span>${labels[index] || "Featured"}</span>
-      <h3>${escapeHTML(bird.name)}</h3>
-      <p>${escapeHTML(bird.primarySite)}</p>
-    `;
-
-    card.append(img, copy);
-    els.featuredGrid.append(card);
-    hydrateImage(img, bird, 1, { priority: index === 0 });
+function bindEvents() {
+  document.querySelector(".skip-link").addEventListener("click", (event) => {
+    event.preventDefault();
+    const content = document.getElementById("content");
+    content.tabIndex = -1;
+    content.focus({ preventScroll: true });
+    content.scrollIntoView({ behavior: "instant" });
+  });
+  document.querySelectorAll("[data-page]").forEach((link) => link.addEventListener("click", (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigate(link.dataset.page);
+  }));
+  els["search-input"].addEventListener("input", () => updateFilters({ query: els["search-input"].value.trim().toLowerCase() }));
+  els["sort-select"].addEventListener("change", () => updateFilters({ sort: els["sort-select"].value }));
+  els["list-previous"].addEventListener("click", () => changeListPage(-1));
+  els["list-next"].addEventListener("click", () => changeListPage(1));
+  els["selected-bird-button"].addEventListener("click", () => openBird(state.selectedBird?.id));
+  document.getElementById("detail-random-bird-button").addEventListener("click", openRandomBird);
+  document.getElementById("back-button").addEventListener("click", () => {
+    if (history.state?.fromSite) history.back();
+    else navigate(state.page);
+  });
+  document.getElementById("close-modal").addEventListener("click", closeModal);
+  document.getElementById("modal-prev").addEventListener("click", () => shiftModal(-1));
+  document.getElementById("modal-next").addEventListener("click", () => shiftModal(1));
+  document.getElementById("modal-details").addEventListener("click", () => {
+    const item = state.modalItems[state.modalIndex];
+    closeModal();
+    if (state.activeBird?.id !== item.bird.id) openBird(item.bird.id);
+  });
+  els["image-modal"].addEventListener("close", () => {
+    document.body.classList.remove("modal-open");
+    els["modal-img"].removeAttribute("src");
+    els["modal-img"].removeAttribute("srcset");
+  });
+  els["image-modal"].addEventListener("click", (event) => {
+    if (event.target !== els["image-modal"]) return;
+    const rect = els["image-modal"].getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!els["image-modal"].open) return;
+    if (event.key === "ArrowLeft") { event.preventDefault(); shiftModal(-1); }
+    if (event.key === "ArrowRight") { event.preventDefault(); shiftModal(1); }
+  });
+  window.addEventListener("popstate", syncFromHash);
+  // Native hash links and pasted deep links work alongside history navigation.
+  window.addEventListener("hashchange", () => {
+    const desiredBird = /^#bird-(\d+)$/.exec(location.hash);
+    if (!desiredBird && !["", "#album", "#life-list", "#gallery"].includes(location.hash)) return;
+    if (desiredBird && state.activeBird?.id === Number(desiredBird[1])) return;
+    if (!desiredBird && !state.activeBird && state.page === (location.hash === "#album" ? "album" : "life")) return;
+    syncFromHash();
   });
 }
 
-function renderInsights() {
-  renderTimeline();
-  renderTopSites();
+function rememberListing() {
+  if (state.activeBird) return;
+  history.replaceState({ page: state.page, scroll: window.scrollY, selectedId: state.selectedBird?.id, filters: state.filters }, "", location.href);
 }
 
-function renderTimeline() {
-  const monthMap = new Map();
-
-  state.allBirds.forEach((bird) => {
-    if (!bird.seenDate) return;
-    const key = `${bird.seenDate.getFullYear()}-${String(bird.seenDate.getMonth() + 1).padStart(2, "0")}`;
-    monthMap.set(key, (monthMap.get(key) || 0) + 1);
-  });
-
-  const months = [...monthMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-12);
-
-  const max = Math.max(...months.map(([, count]) => count), 1);
-  els.timelineBars.innerHTML = "";
-
-  months.forEach(([key, count]) => {
-    const [year, month] = key.split("-");
-    const date = new Date(Number(year), Number(month) - 1, 1);
-    const label = new Intl.DateTimeFormat("en-AU", { month: "short" }).format(date);
-    const bar = document.createElement("div");
-    bar.className = "timeline-bar";
-    bar.title = `${label} ${year}: ${count} sightings`;
-    bar.innerHTML = `
-      <div class="timeline-bar__fill" style="height: ${Math.max(10, (count / max) * 110)}px"></div>
-      <span>${label}</span>
-    `;
-    els.timelineBars.append(bar);
-  });
+function navigate(page) {
+  rememberListing();
+  history.pushState({ page, scroll: 0, filters: state.filters }, "", page === "album" ? "#album" : "#life-list");
+  showPage(page, 0, true);
 }
 
-function renderTopSites() {
-  const siteMap = new Map();
-
-  state.allBirds.forEach((bird) => {
-    siteMap.set(bird.primarySite, (siteMap.get(bird.primarySite) || 0) + 1);
-  });
-
-  const topSites = [...siteMap.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 5);
-
-  els.siteList.innerHTML = "";
-  topSites.forEach(([site, count]) => {
-    const item = document.createElement("li");
-    item.innerHTML = `<strong>${escapeHTML(site)}</strong><span>${count}</span>`;
-    els.siteList.append(item);
-  });
-}
-
-function renderRegionFilters() {
-  const regions = [...new Set(state.allBirds.map((bird) => bird.region))]
-    .sort((a, b) => labelRegion(a).localeCompare(labelRegion(b)));
-
-  const entries = ["all", ...regions];
-  els.regionFilters.innerHTML = "";
-
-  entries.forEach((region) => {
-    const count = region === "all"
-      ? state.allBirds.length
-      : state.allBirds.filter((bird) => bird.region === region).length;
-
-    const chip = createFilterChip({
-      label: region === "all" ? "All regions" : labelRegion(region),
-      count,
-      active: state.region === region,
-      onClick: () => {
-        state.region = region;
-        renderRegionFilters();
-        applyFilters();
-      },
-    });
-
-    els.regionFilters.append(chip);
-  });
-}
-
-function renderFamilyControls() {
-  renderFamilySelect();
-  renderFamilyRail();
-}
-
-function toggleFamilyAtlas(forceOpen) {
-  if (!els.familyAtlasToggle || !els.familyAtlasPanel) return;
-
-  state.familyAtlasOpen = typeof forceOpen === "boolean" ? forceOpen : !state.familyAtlasOpen;
-  els.familyAtlasPanel.hidden = !state.familyAtlasOpen;
-  els.familyAtlasToggle.setAttribute("aria-expanded", String(state.familyAtlasOpen));
-  els.familyAtlasToggle.textContent = state.familyAtlasOpen ? "Hide family atlas" : "Show family atlas";
-
-  if (state.familyAtlasOpen && state.family !== "all") {
-    const activeCard = els.familyRail.querySelector(`[data-family-id="${state.family}"]`);
-    if (activeCard) activeCard.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+function syncFromHash() {
+  if (els["image-modal"].open) closeModal();
+  const saved = history.state;
+  if (saved?.filters?.life && saved?.filters?.album) state.filters = structuredClone(saved.filters);
+  if (saved?.selectedId) state.selectedBird = state.allBirds.find((bird) => bird.id === saved.selectedId) || state.selectedBird;
+  const match = /^#bird-(\d+)$/.exec(location.hash);
+  if (match) {
+    state.page = saved?.page === "album" ? "album" : "life";
+    openBird(Number(match[1]), false);
+  } else {
+    showPage(location.hash === "#album" ? "album" : "life", saved?.scroll || 0);
   }
 }
 
-function renderFamilySelect() {
-  const activeValue = state.family;
-  const familySummaries = getFamilySummaries();
-
-  els.familySelect.innerHTML = `<option value="all">All families</option>`;
-  familySummaries.forEach((summary) => {
-    const option = document.createElement("option");
-    option.value = summary.id;
-    option.textContent = `${summary.scientific} - ${summary.common} (${summary.count})`;
-    els.familySelect.append(option);
+function showPage(page, scroll = 0, focus = false) {
+  state.page = page === "album" ? "album" : "life";
+  state.activeBird = null;
+  els["home-view"].hidden = false;
+  els["bird-detail-page"].hidden = true;
+  els["life-page"].hidden = state.page !== "life";
+  els["album-page"].hidden = state.page !== "album";
+  const inAlbum = state.page === "album";
+  document.querySelector(".search-control").hidden = inAlbum;
+  els["region-filters"].hidden = inAlbum;
+  const controls = document.querySelector(".controls");
+  controls.classList.toggle("is-album", inAlbum);
+  controls.setAttribute("aria-label", inAlbum ? "Photo order" : "Search and filters");
+  if (inAlbum) Object.assign(filters(), { query: "", region: "all", pageIndex: 0 });
+  document.querySelectorAll(".site-nav [data-page]").forEach((link) => {
+    if (link.dataset.page === state.page) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   });
-
-  els.familySelect.value = activeValue;
-}
-
-function renderFamilyRail() {
-  els.familyRail.innerHTML = "";
-
-  getFamilySummaries().forEach((summary) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = `family-card${state.family === summary.id ? " is-active" : ""}`;
-    card.dataset.familyId = summary.id;
-    card.style.setProperty("--family-accent", summary.accent);
-    card.setAttribute("aria-label", `Filter by ${summary.scientific}`);
-    card.innerHTML = `
-      <div class="family-card__top">
-        <span class="family-card__latin">${escapeHTML(summary.scientific)}</span>
-        <span class="family-card__count">${summary.count}</span>
-      </div>
-      <h3>${escapeHTML(summary.common)}</h3>
-      <p>${escapeHTML(summary.examples.join(", "))}</p>
-    `;
-    card.addEventListener("click", () => setFamilyFilter(summary.id));
-    els.familyRail.append(card);
-  });
-}
-
-function getFamilySummaries() {
-  return familyDefinitions
-    .map((family) => {
-      const members = state.allBirds
-        .filter((bird) => bird.familyId === family.id)
-        .sort((a, b) => b.timestamp - a.timestamp || a.name.localeCompare(b.name));
-
-      return {
-        ...family,
-        count: members.length,
-        examples: members.slice(0, 3).map((bird) => bird.name),
-      };
-    })
-    .filter((family) => family.count > 0)
-    .sort((a, b) => a.index - b.index);
-}
-
-function setFamilyFilter(familyId) {
-  state.family = familiesById[familyId] ? familyId : "all";
-  els.familySelect.value = state.family;
-  renderFamilyRail();
-  if (state.family !== "all" && state.familyAtlasOpen) {
-    const activeCard = els.familyRail.querySelector(`[data-family-id="${state.family}"]`);
-    if (activeCard) activeCard.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+  const selectedOption = els["sort-select"].querySelector('[value="selected"]');
+  if (state.page === "album" && !selectedOption) {
+    els["sort-select"].insertAdjacentHTML("afterbegin", '<option value="selected">Album order</option>');
+  } else if (state.page === "life" && selectedOption) selectedOption.remove();
+  els["search-input"].value = filters().query;
+  els["sort-select"].value = filters().sort;
+  renderRegionFilters();
+  renderResults();
+  document.title = `Oliver’s birds — ${state.page === "album" ? "Photo album" : "Life list"}`;
+  if (focus) {
+    const heading = document.querySelector(state.page === "album" ? "#album-page h2" : "#life-page h2");
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
   }
-  applyFilters();
+  requestAnimationFrame(() => window.scrollTo({ top: scroll, behavior: "instant" }));
 }
 
-function createFilterChip({ label, count, active, onClick }) {
-  const chip = document.createElement("button");
-  chip.type = "button";
-  chip.className = `filter-chip${active ? " is-active" : ""}`;
-  chip.textContent = `${label} ${count}`;
-  chip.addEventListener("click", onClick);
-  return chip;
+function updateFilters(patch) {
+  Object.assign(filters(), patch, { pageIndex: 0 });
+  const regionChanged = Object.hasOwn(patch, "region");
+  if (regionChanged) {
+    state.selectedBird = newestBird(state.allBirds.filter(matchesBird));
+  }
+  renderRegionFilters();
+  renderResults();
+  if (regionChanged) announce(state.selectedBird?.name || "No birds found.");
+  rememberListing();
 }
 
-function applyFilters() {
-  const query = state.query;
+function newestBird(list) {
+  return list.reduce((latest, bird) => {
+    if (!latest || bird.timestamp > latest.timestamp || (bird.timestamp === latest.timestamp && bird.id > latest.id)) return bird;
+    return latest;
+  }, null);
+}
 
-  const results = state.allBirds.filter((bird) => {
-    const haystack = `${bird.name} ${bird.site} ${bird.primarySite} ${bird.regionLabel} ${bird.family.scientific} ${bird.family.common}`.toLowerCase();
-    const matchesQuery = !query || haystack.includes(query);
-    const matchesRegion = state.region === "all" || bird.region === state.region;
-    const matchesFamily = state.family === "all" || bird.familyId === state.family;
-    return matchesQuery && matchesRegion && matchesFamily;
-  });
+function normalizeSearchText(value) {
+  return value.normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/['’‘]/g, "")
+    .replace(/[\p{P}\p{S}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  results.sort(sortBirds);
-  state.filteredBirds = results;
-  renderGallery(results);
-  updateGallerySummary(results);
+function matchesBird(bird) {
+  const { query, region } = filters();
+  const search = normalizeSearchText(query);
+  const haystack = normalizeSearchText(`${bird.name} ${bird.site} ${bird.primarySite} ${bird.regionLabel} ${bird.family.scientific} ${bird.family.common}`);
+  return (!search || haystack.includes(search)) && (region === "all" || bird.region === region);
 }
 
 function sortBirds(a, b) {
-  if (state.sort === "alphaAsc") return a.name.localeCompare(b.name);
-  if (state.sort === "alphaDesc") return b.name.localeCompare(a.name);
-  if (state.sort === "dateAsc") return a.timestamp - b.timestamp || a.name.localeCompare(b.name);
+  const sort = filters().sort;
+  if (sort === "selected") return 0;
+  if (sort === "alphaAsc") return a.name.localeCompare(b.name);
+  if (sort === "alphaDesc") return b.name.localeCompare(a.name);
+  if (sort === "dateAsc") return a.timestamp - b.timestamp || a.name.localeCompare(b.name);
   return b.timestamp - a.timestamp || a.name.localeCompare(b.name);
 }
 
-function renderGallery(list) {
-  els.grid.innerHTML = "";
-  els.emptyState.classList.toggle("hidden", list.length > 0);
-
-  const fragment = document.createDocumentFragment();
-  list.forEach((bird, index) => fragment.append(createBirdCard(bird, index)));
-  els.grid.append(fragment);
-}
-
-function createBirdCard(bird, index) {
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "bird-card";
-  card.setAttribute("aria-label", `Open ${bird.name}`);
-  card.addEventListener("click", () => openBird(bird.id));
-
-  const imageWrap = document.createElement("div");
-  imageWrap.className = "bird-card__image";
-
-  const img = document.createElement("img");
-  img.alt = bird.name;
-  img.loading = index < 8 ? "eager" : "lazy";
-  img.decoding = "async";
-  img.fetchPriority = index < 4 ? "high" : "low";
-  imageWrap.append(img);
-
-  const body = document.createElement("div");
-  body.className = "bird-card__body";
-  body.innerHTML = `
-    <div class="bird-card__kicker">
-      <span>${escapeHTML(formatSeenDate(bird))}</span>
-      <span>${escapeHTML(bird.region)}</span>
-    </div>
-    <h3>${escapeHTML(bird.name)}</h3>
-    <p class="bird-card__site">${escapeHTML(bird.primarySite)}</p>
-  `;
-
-  card.append(imageWrap, body);
-  hydrateImage(img, bird, 1, { priority: index < 8 });
-  return card;
-}
-
-function updateGallerySummary(results) {
-  const birdWord = results.length === 1 ? "bird" : "birds";
-  els.resultCount.textContent = `${results.length} ${birdWord}`;
-
-  const parts = [];
-  if (state.region !== "all") parts.push(labelRegion(state.region));
-  if (state.family !== "all") {
-    const family = familiesById[state.family];
-    if (family) parts.push(`${family.scientific} (${family.common})`);
+function renderResults() {
+  state.filteredBirds = state.allBirds.filter(matchesBird).sort(sortBirds);
+  if (state.page === "album") {
+    state.visibleAlbum = state.album.filter((item) => matchesBird(item.bird)).sort((a, b) => sortBirds(a.bird, b.bird));
+    els["album-count"].textContent = `${state.visibleAlbum.length} ${state.visibleAlbum.length === 1 ? "photo" : "photos"}`;
+    els["album-empty"].hidden = state.visibleAlbum.length > 0;
+    els["album-photos"].replaceChildren(...state.visibleAlbum.map((item, index) => photoPrint(item, index, () => openModal(state.visibleAlbum, index))));
+  } else {
+    if (!state.filteredBirds.length) state.selectedBird = null;
+    else if (!state.filteredBirds.some((bird) => bird.id === state.selectedBird?.id)) state.selectedBird = state.filteredBirds[0];
+    renderList();
+    renderSelectedBird();
   }
-  if (state.query) parts.push(`matching "${state.query}"`);
+}
 
-  els.gallerySummary.textContent = parts.length
-    ? `Showing ${parts.join(", ")}.`
-    : "";
+function renderList() {
+  const list = state.filteredBirds;
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  filters().pageIndex = Math.min(filters().pageIndex, pages - 1);
+  const start = filters().pageIndex * PAGE_SIZE;
+  const rows = list.slice(start, start + PAGE_SIZE).map((bird, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "bird-record";
+    button.dataset.birdId = bird.id;
+    button.setAttribute("aria-pressed", String(bird.id === state.selectedBird?.id));
+    const thumb = document.createElement("span");
+    thumb.className = "record-thumb";
+    const photo = photosForBird(bird)[0];
+    if (photo) {
+      const img = document.createElement("img");
+      img.alt = "";
+      setPhoto(img, photo, { sizes: "50px", eager: index < 4 });
+      thumb.append(img);
+    } else {
+      thumb.classList.add("blank-thumb");
+      thumb.setAttribute("aria-hidden", "true");
+      thumb.textContent = "—";
+    }
+    const copy = document.createElement("span");
+    copy.innerHTML = `<span class="record-name">${escapeHTML(bird.name)}</span><span class="record-date">${escapeHTML(formatSeenDate(bird))}</span>`;
+    button.append(thumb, copy);
+    button.addEventListener("click", () => {
+      state.selectedBird = bird;
+      els["bird-list"].querySelectorAll(".bird-record").forEach((row) => row.setAttribute("aria-pressed", String(Number(row.dataset.birdId) === bird.id)));
+      renderSelectedBird();
+      announce(bird.name);
+      rememberListing();
+      if (window.matchMedia("(max-width: 700px)").matches) {
+        els["selected-bird-button"].focus({ preventScroll: true });
+        els["selected-bird-button"].scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      }
+    });
+    return button;
+  });
+  els["bird-list"].replaceChildren(...rows);
+  els["result-count"].textContent = `${list.length} species`;
+  els["empty-state"].hidden = list.length > 0;
+  els["list-previous"].disabled = filters().pageIndex === 0;
+  els["list-next"].disabled = filters().pageIndex >= pages - 1;
+  els["list-page-label"].textContent = `${filters().pageIndex + 1} / ${pages}`;
+  document.querySelector(".list-pagination").hidden = pages === 1;
+}
+
+function changeListPage(direction) {
+  filters().pageIndex += direction;
+  renderList();
+  rememberListing();
+  announce(`Page ${filters().pageIndex + 1}`);
+  if (window.matchMedia("(max-width: 700px)").matches) {
+    els["life-page"].scrollIntoView({ behavior: "instant", block: "start" });
+  }
+}
+
+function renderSelectedBird() {
+  const bird = state.selectedBird;
+  const button = els["selected-bird-button"];
+  button.disabled = !bird;
+  button.closest(".pasted-photos").hidden = !bird;
+  if (!bird) return;
+  const photo = photosForBird(bird)[0];
+  button.setAttribute("aria-label", `Open ${bird.name}`);
+  button.querySelector(".image-placeholder").hidden = Boolean(photo);
+  els["selected-bird-image"].hidden = !photo;
+  els["selected-bird-name"].textContent = bird.name;
+  if (photo) {
+    els["selected-bird-image"].alt = bird.name;
+    setPhoto(els["selected-bird-image"], photo, { eager: true, priority: true });
+  } else {
+    els["selected-bird-image"].removeAttribute("src");
+    els["selected-bird-image"].removeAttribute("srcset");
+  }
+}
+
+function photosForBird(bird) {
+  if (bird.noPhotos) return [];
+  if (bird.images?.length) return bird.images.map((src, index) => ({ src, index: index + 1, variants: [] }));
+  return imageCatalog[bird.folder] || catalogByFolder.get(bird.folder.toLowerCase()) || [];
+}
+
+function setPhoto(img, photo, { sizes = "(max-width: 700px) calc(100vw - 70px), 44vw", eager = false, priority = false } = {}) {
+  img.loading = eager ? "eager" : "lazy";
+  img.decoding = "async";
+  img.fetchPriority = priority ? "high" : "auto";
+  img.sizes = sizes;
+  if (photo.width && photo.height) { img.width = photo.width; img.height = photo.height; }
+  img.classList.remove("image-error");
+  img.onerror = () => img.classList.add("image-error");
+  const variants = photo.variants || [];
+  if (variants.length) {
+    img.srcset = variants.map((entry) => `${entry.src} ${entry.width}w`).join(", ");
+    img.src = variants[variants.length - 1].src;
+  } else {
+    img.removeAttribute("srcset");
+    img.src = photo.src;
+  }
+}
+
+function photoPrint(item, index, onClick, showCaption = true) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "album-print print";
+  button.setAttribute("aria-label", `Open ${item.bird.name} photo ${item.photo.index}`);
+  const tape = document.createElement("span");
+  tape.className = "tape";
+  tape.setAttribute("aria-hidden", "true");
+  const img = document.createElement("img");
+  img.alt = item.bird.name;
+  setPhoto(img, item.photo, { eager: index < 2 });
+  const caption = document.createElement("span");
+  caption.textContent = item.bird.name;
+  button.append(tape, img);
+  if (showCaption) button.append(caption);
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function renderRegionFilters() {
+  const pool = state.page === "album" ? state.album.map((item) => item.bird) : state.allBirds;
+  const regions = [...new Set(pool.map((bird) => bird.region))].sort((a, b) => labelRegion(a).localeCompare(labelRegion(b)));
+  els["region-filters"].replaceChildren(...["all", ...regions].map((region) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "region-filter";
+    button.textContent = region === "all" ? "All regions" : labelRegion(region);
+    button.dataset.region = region;
+    button.setAttribute("aria-pressed", String(filters().region === region));
+    button.addEventListener("click", () => {
+      updateFilters({ region });
+      [...els["region-filters"].children].find((item) => item.dataset.region === region)?.focus({ preventScroll: true });
+    });
+    return button;
+  }));
+}
+
+function renderInsights() {
+  const months = new Map(), sites = new Map();
+  state.allBirds.forEach((bird) => {
+    if (bird.seenDate) {
+      const key = `${bird.seenDate.getFullYear()}-${String(bird.seenDate.getMonth() + 1).padStart(2, "0")}`;
+      months.set(key, (months.get(key) || 0) + 1);
+    }
+    sites.set(bird.primarySite, (sites.get(bird.primarySite) || 0) + 1);
+  });
+  const recent = [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12);
+  const max = Math.max(...recent.map(([, count]) => count), 1);
+  document.getElementById("timeline-bars").innerHTML = recent.map(([key, count]) => {
+    const [year, month] = key.split("-");
+    const label = new Intl.DateTimeFormat("en-AU", { month: "short" }).format(new Date(Number(year), Number(month) - 1, 1));
+    return `<div class="timeline-bar" title="${label} ${year}: ${count} species"><span class="timeline-value">${count}</span><div class="timeline-fill" style="height:${Math.max(4, count / max * 85)}px"></div><span>${label}</span></div>`;
+  }).join("");
+  document.getElementById("site-list").innerHTML = [...sites].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([site, count]) => `<li><span>${escapeHTML(site)}</span><span>${count}</span></li>`).join("");
 }
 
 function openRandomBird() {
-  const sourcePool = state.filteredBirds.length ? state.filteredBirds : state.allBirds;
-  const pool = state.activeBird && sourcePool.length > 1
-    ? sourcePool.filter((bird) => bird.id !== state.activeBird.id)
-    : sourcePool;
-  const bird = pool[Math.floor(Math.random() * pool.length)];
-  openBird(bird.id, true, {
-    returnTarget: "hero",
-    returnScroll: 0,
-    randomDetailMode: true,
-    detailScroll: "balanced",
-  });
+  const candidates = (state.page === "album" ? state.visibleAlbum.map((item) => item.bird) : state.filteredBirds).filter((bird) => bird.id !== state.activeBird?.id);
+  const pool = candidates.length ? candidates : state.allBirds;
+  openBird(pool[Math.floor(Math.random() * pool.length)].id);
 }
 
-function openNewestLifer() {
-  const latestBird = getLatestBird();
-  if (!latestBird) return;
-
-  openBird(latestBird.id, true, {
-    returnTarget: "hero",
-    returnScroll: 0,
-    detailScroll: "balanced",
-  });
-}
-
-async function openBird(id, pushHistory = true, options = {}) {
+function openBird(id, pushHistory = true) {
   const bird = state.allBirds.find((item) => item.id === id);
-  if (!bird) return;
-
+  if (!bird) { showPage("life"); return; }
+  if (pushHistory) {
+    const replacingDetail = Boolean(state.activeBird);
+    const fromSite = replacingDetail ? Boolean(history.state?.fromSite) : true;
+    rememberListing();
+    history[replacingDetail ? "replaceState" : "pushState"]({ page: state.page, fromSite, filters: state.filters }, "", `#bird-${bird.id}`);
+  }
   state.activeBird = bird;
-  const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
-  state.detailReturnTarget = options.returnTarget === "hero" ? "hero" : "gallery";
-  state.randomDetailMode = Boolean(options.randomDetailMode);
-  const useBalancedDetailScroll = options.detailScroll === "balanced";
-  state.lastGalleryScroll = Number.isFinite(options.returnScroll) ? options.returnScroll : currentScroll;
-  els.homeView.classList.add("hidden");
-  els.detailPage.classList.remove("hidden");
-  document.body.classList.add("showing-detail");
-  updateDetailActions();
-  resetDetailScroll(useBalancedDetailScroll);
-
-  els.detailGroup.textContent = `${bird.family.scientific} | ${bird.family.common}`;
-  els.birdName.textContent = bird.name;
-  els.birdDescription.textContent = bird.description || `${bird.name} sits in ${bird.family.scientific} (${bird.family.common}) and was first logged at ${bird.site}.`;
-  els.birdDate.textContent = formatSeenDate(bird);
-  els.birdLocation.textContent = bird.site;
-  els.birdRegion.textContent = bird.regionLabel;
-  els.photoCount.textContent = "Loading photos";
-  els.detailGallery.innerHTML = `<p class="loading-note">Loading photos...</p>`;
-
-  hydrateImage(els.detailHeroImg, bird, 1, { priority: true });
-
-  if (pushHistory) {
-    history.pushState({ birdId: id }, "", `#bird-${id}`);
-  }
-
-  resetDetailScroll(useBalancedDetailScroll);
-
-  const images = await collectBirdImages(bird);
-  if (!state.activeBird || state.activeBird.id !== bird.id) return;
-
-  renderDetailGallery(bird, images);
-  if (useBalancedDetailScroll) {
-    resetDetailScroll(true);
-  }
+  els["home-view"].hidden = true;
+  els["bird-detail-page"].hidden = false;
+  els["bird-name"].textContent = bird.name;
+  els["bird-date"].textContent = formatSeenDate(bird);
+  els["bird-location"].textContent = bird.site;
+  els["bird-region"].textContent = bird.regionLabel;
+  els["detail-group"].textContent = `${bird.family.scientific} — ${bird.family.common}`;
+  els["bird-description"].textContent = bird.description || "";
+  els["bird-description"].hidden = !bird.description;
+  document.getElementById("back-button").textContent = state.page === "album" ? "Back to photo album" : "Back to life list";
+  const photos = photosForBird(bird);
+  els["photo-count"].textContent = `${photos.length} ${photos.length === 1 ? "photo" : "photos"}`;
+  const items = photos.map((photo) => ({ bird, photo }));
+  els["bird-carousel"].replaceChildren(...items.map((item, index) => photoPrint(item, index, () => openModal(items, index), false)));
+  if (!photos.length) els["bird-carousel"].innerHTML = '<p class="no-photos-note">No photos yet.</p>';
+  document.title = `${bird.name} — Oliver’s birds`;
+  els["bird-name"].tabIndex = -1;
+  els["bird-name"].focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
-function renderDetailGallery(bird, images) {
-  els.detailGallery.innerHTML = "";
-  els.photoCount.textContent = images.length === 1 ? "1 photo" : `${images.length} photos`;
-
-  if (!images.length) {
-    els.detailGallery.innerHTML = `<p class="loading-note">No photos found for this species yet.</p>`;
-    return;
-  }
-
-  images.forEach((src, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.setAttribute("aria-label", `Open ${bird.name} photo ${index + 1}`);
-
-    const img = document.createElement("img");
-    img.alt = `${bird.name} photo ${index + 1}`;
-    img.loading = index < 6 ? "eager" : "lazy";
-    img.decoding = "async";
-    img.fetchPriority = index < 3 ? "high" : "low";
-
-    button.append(img);
-    setImageState(img, "loading");
-    img.onload = () => setImageState(img, "loaded");
-    img.onerror = () => setImageState(img, "missing");
-    img.src = src;
-    button.addEventListener("click", () => openModal(images, index, bird));
-    els.detailGallery.append(button);
-  });
-}
-
-function handleDetailBack() {
-  if (state.detailReturnTarget === "hero") {
-    showHomeHero(true);
-    return;
-  }
-
-  showGallery(true);
-}
-
-function updateDetailActions() {
-  const returnsToHero = state.detailReturnTarget === "hero";
-  const isRandomMode = returnsToHero && state.randomDetailMode;
-
-  if (els.backButton) {
-    els.backButton.textContent = returnsToHero ? "\u2190 Back" : "\u2190 Gallery";
-  }
-
-  if (els.detailRandomBirdButton) {
-    els.detailRandomBirdButton.classList.toggle("hidden", !isRandomMode);
-  }
-}
-
-function showHomeHero(pushHistory = true) {
-  state.activeBird = null;
-  state.detailReturnTarget = "gallery";
-  state.randomDetailMode = false;
-  els.detailPage.classList.add("hidden");
-  els.homeView.classList.remove("hidden");
-  document.body.classList.remove("showing-detail");
-  updateDetailActions();
-
-  if (pushHistory) {
-    history.pushState({}, "", `${window.location.pathname}${window.location.search}`);
-  }
-
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    });
-  });
-}
-
-function showGallery(pushHistory = true) {
-  state.activeBird = null;
-  state.detailReturnTarget = "gallery";
-  state.randomDetailMode = false;
-  els.detailPage.classList.add("hidden");
-  els.homeView.classList.remove("hidden");
-  document.body.classList.remove("showing-detail");
-  updateDetailActions();
-
-  if (pushHistory) {
-    history.pushState({}, "", "#gallery");
-  }
-
-  requestAnimationFrame(() => {
-    const targetScroll = Number.isFinite(state.lastGalleryScroll) ? state.lastGalleryScroll : 0;
-    window.scrollTo({ top: targetScroll, left: 0, behavior: "auto" });
-
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: targetScroll, left: 0, behavior: "auto" });
-    });
-  });
-}
-
-function syncFromHash(pushHistory) {
-  const match = /^#bird-(\d+)$/.exec(window.location.hash);
-  if (match) {
-    openBird(Number(match[1]), pushHistory);
-    return;
-  }
-
-  if (!els.detailPage.classList.contains("hidden")) {
-    showGallery(pushHistory);
-  }
-}
-
-function openModal(images, index, bird) {
-  state.modalImages = images;
+function openModal(items, index) {
+  state.modalItems = items;
   state.modalIndex = index;
-  state.modalBird = bird;
   updateModal();
-  els.modal.hidden = false;
   document.body.classList.add("modal-open");
+  els["image-modal"].showModal();
 }
 
-function closeModal() {
-  els.modal.hidden = true;
-  document.body.classList.remove("modal-open");
-  els.modalImg.src = "";
-}
-
+function closeModal() { els["image-modal"].close(); }
 function shiftModal(direction) {
-  if (!state.modalImages.length) return;
-  state.modalIndex = (state.modalIndex + direction + state.modalImages.length) % state.modalImages.length;
+  state.modalIndex = (state.modalIndex + direction + state.modalItems.length) % state.modalItems.length;
   updateModal();
 }
-
 function updateModal() {
-  const src = state.modalImages[state.modalIndex];
-  const bird = state.modalBird;
-  els.modalImg.src = src;
-  els.modalImg.alt = `${bird.name} photo ${state.modalIndex + 1}`;
-  els.modalCaption.textContent = `${bird.name} | ${state.modalIndex + 1} of ${state.modalImages.length}`;
+  const { bird, photo } = state.modalItems[state.modalIndex];
+  const img = els["modal-img"];
+  // Keep browsing light; the full-resolution file is an explicit choice.
+  setPhoto(img, photo, { sizes: "(max-width: 700px) calc(100vw - 64px), 940px", eager: true, priority: true });
+  img.alt = `${bird.name} photo ${photo.index}`;
+  const originalLink = document.getElementById("modal-original");
+  originalLink.href = photo.src;
+  originalLink.setAttribute("aria-label", `Open original ${bird.name} photo ${photo.index}`);
+  els["modal-caption"].textContent = bird.name;
+  els["modal-position"].textContent = `${state.modalIndex + 1} / ${state.modalItems.length}`;
+  document.getElementById("modal-prev").disabled = state.modalItems.length < 2;
+  document.getElementById("modal-next").disabled = state.modalItems.length < 2;
 }
-
-function setupLazyImageObserver() {
-  if (!("IntersectionObserver" in window)) return;
-
-  lazyImageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const img = entry.target;
-      observer.unobserve(img);
-      hydrateImageNow(img, img.__bird, img.__imageIndex);
-    });
-  }, { rootMargin: IMAGE_OBSERVER_ROOT_MARGIN });
-}
-
-function getGalleryScrollPosition() {
-  const gallery = document.getElementById("gallery");
-  if (!gallery) return window.scrollY || document.documentElement.scrollTop || 0;
-
-  const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-  return Math.max(0, Math.round(gallery.getBoundingClientRect().top + scrollTop));
-}
-
-function resetDetailScroll(useBalancedPosition = false) {
-  const getTop = () => useBalancedPosition ? getBalancedDetailScrollTop() : 0;
-  setPageScroll(getTop());
-
-  requestAnimationFrame(() => {
-    setPageScroll(getTop());
-
-    requestAnimationFrame(() => {
-      setPageScroll(getTop());
-    });
-  });
-
-  if (useBalancedPosition) {
-    window.setTimeout(() => setPageScroll(getTop()), 80);
-  }
-}
-
-function getBalancedDetailScrollTop() {
-  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 800;
-  const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
-  const detailBody = document.querySelector(".detail-body");
-
-  let targetScroll = 0;
-
-  if (detailBody) {
-    const detailBodyTop = detailBody.getBoundingClientRect().top + currentScroll;
-    const preferredBodyTop = Math.min(560, Math.max(430, viewportHeight * 0.64));
-    targetScroll = detailBodyTop - preferredBodyTop;
-  }
-
-  if (els.photoCount) {
-    const photoCountBottom = els.photoCount.getBoundingClientRect().bottom + currentScroll;
-    const bottomPadding = 72;
-    targetScroll = Math.max(targetScroll, photoCountBottom - (viewportHeight - bottomPadding));
-  }
-
-  return Math.max(0, Math.round(targetScroll));
-}
-
-function setPageScroll(top) {
-  document.documentElement.scrollTop = top;
-  document.body.scrollTop = top;
-  window.scrollTo({ top, left: 0, behavior: "auto" });
-}
-
-function hydrateImage(img, bird, index, options = {}) {
-  if (!img || !bird) return;
-
-  img.__bird = bird;
-  img.__imageIndex = index;
-
-  const shouldLoadNow = options.priority || img.loading === "eager" || !lazyImageObserver;
-  if (shouldLoadNow) {
-    hydrateImageNow(img, bird, index);
-    return;
-  }
-
-  lazyImageObserver.observe(img);
-}
-
-function hydrateImageNow(img, bird, index) {
-  if (!img || !bird) return;
-
-  const requestKey = `${bird.id}:${index}`;
-  img.__imageRequestKey = requestKey;
-  setImageState(img, "loading");
-  img.removeAttribute("src");
-
-  resolveImagePath(bird, index).then((src) => {
-    if (!img.isConnected || img.__imageRequestKey !== requestKey) return;
-
-    if (!src) {
-      setImageState(img, "missing");
-      return;
-    }
-
-    img.onload = () => setImageState(img, "loaded");
-    img.onerror = () => {
-      img.removeAttribute("src");
-      setImageState(img, "missing");
-    };
-    img.src = src;
-  });
-}
-
-function setImageState(img, state) {
-  img.classList.toggle("is-loaded", state === "loaded");
-  img.classList.toggle("is-image-loading", state === "loading");
-
-  const frame = img.parentElement;
-  if (!frame) return;
-
-  frame.classList.toggle("is-image-loading", state === "loading");
-  frame.classList.toggle("is-image-missing", state === "missing");
-}
-
-function resolveImagePath(bird, index) {
-  if (bird.noPhotos) return Promise.resolve(null);
-
-  const directImage = Array.isArray(bird.images) ? bird.images[index - 1] : null;
-  if (directImage) return Promise.resolve(directImage);
-
-  const key = `${bird.id}:${index}`;
-  if (imagePathCache.has(key)) return imagePathCache.get(key);
-
-  const defaultCandidate = `Images/${bird.folder}/${index}${DEFAULT_IMAGE_EXTENSION}`;
-  const fallbackCandidates = IMAGE_EXTENSIONS
-    .filter((extension) => extension !== DEFAULT_IMAGE_EXTENSION)
-    .map((extension) => `Images/${bird.folder}/${index}${extension}`);
-  const candidates = [defaultCandidate, ...fallbackCandidates];
-
-  const promise = new Promise((resolve) => {
-    tryImageCandidate(candidates, 0, resolve);
-  });
-
-  imagePathCache.set(key, promise);
-  return promise;
-}
-
-function tryImageCandidate(candidates, index, resolve) {
-  if (index >= candidates.length) {
-    resolve(null);
-    return;
-  }
-
-  const tester = new Image();
-  tester.onload = () => resolve(candidates[index]);
-  tester.onerror = () => tryImageCandidate(candidates, index + 1, resolve);
-  tester.src = candidates[index];
-}
-
-async function collectBirdImages(bird) {
-  if (galleryImageCache.has(bird.id)) return galleryImageCache.get(bird.id);
-
-  if (bird.noPhotos) {
-    galleryImageCache.set(bird.id, []);
-    return [];
-  }
-
-  if (Array.isArray(bird.images) && bird.images.length) {
-    galleryImageCache.set(bird.id, bird.images);
-    return bird.images;
-  }
-
-  const images = [];
-  let misses = 0;
-
-  for (let start = 1; start <= MAX_DETAIL_IMAGES; start += DETAIL_IMAGE_PROBE_BATCH) {
-    const batch = Array.from(
-      { length: Math.min(DETAIL_IMAGE_PROBE_BATCH, MAX_DETAIL_IMAGES - start + 1) },
-      (_, offset) => start + offset
-    );
-    const sources = await Promise.all(batch.map((imageIndex) => resolveImagePath(bird, imageIndex)));
-
-    for (const src of sources) {
-      if (src) {
-        images.push(src);
-        misses = 0;
-      } else {
-        misses += 1;
-        if (images.length && misses >= 4) {
-          galleryImageCache.set(bird.id, images);
-          return images;
-        }
-      }
-    }
-
-    if (!images.length && misses >= DETAIL_IMAGE_PROBE_BATCH) break;
-  }
-
-  galleryImageCache.set(bird.id, images);
-  return images;
-}
-
-function findBirdByName(name) {
-  return state.allBirds.find((bird) => bird.name === name);
-}
-
-function uniqueBirds(list) {
-  const seen = new Set();
-  return list.filter((bird) => {
-    if (!bird || seen.has(bird.id)) return false;
-    seen.add(bird.id);
-    return true;
-  });
-}
-
+function announce(text) { els["announcement"].textContent = text; }
 function escapeHTML(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }

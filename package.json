@@ -2,7 +2,8 @@
   "name": "bird-life-list-site",
   "private": true,
   "scripts": {
-    "build:images": "node scripts/generate-image-variants.mjs"
+    "build:images": "node scripts/generate-image-variants.mjs",
+    "build:manifest": "node scripts/generate-image-manifest.mjs"
   },
   "devDependencies": {
     "sharp": "^0.33.5"
