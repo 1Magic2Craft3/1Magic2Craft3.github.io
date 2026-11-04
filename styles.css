@@ -147,7 +147,9 @@ a { color:inherit; }
 #bird-scrapbook .list-pagination { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:23px 0 4px; }
 #bird-scrapbook .list-pagination .paper-button { font-size:17px; padding:6px 12px; }
 #bird-scrapbook .list-pagination>span { font-size:16px; white-space:nowrap; }
-#bird-scrapbook .pasted-photos { position:sticky; top:28px; min-width:0; padding-bottom:35px; }
+#bird-scrapbook .pasted-photos { position:sticky; top:28px; min-width:0; padding-top:92px; padding-bottom:35px; }
+#bird-scrapbook .feature-callout { position:absolute; top:24px; right:32px; display:flex; flex-direction:row-reverse; align-items:flex-start; gap:10px; font-size:30px; line-height:1.2; white-space:nowrap; pointer-events:none; transform:rotate(5deg); }
+#bird-scrapbook .feature-callout svg { display:block; width:106px; height:70px; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transform:scaleX(-1); }
 #bird-scrapbook .featured-print { margin-right:8px; }
 #bird-scrapbook .feature-image img { height:auto; aspect-ratio:3 / 2; }
 #bird-scrapbook .image-placeholder { display:grid; align-items:center; min-height:240px; background:#e4dccc; font-size:24px; }
@@ -210,7 +212,7 @@ a { color:inherit; }
   #bird-scrapbook .ledger-heading { padding-left:0; }
   #bird-scrapbook .bird-record { grid-template-columns:40px 1fr; gap:11px; padding-left:0; padding-right:0; min-height:80px; }
   #bird-scrapbook .record-thumb.blank-thumb { width:40px; height:44px; }
-  #bird-scrapbook .pasted-photos { position:relative; top:0; padding:12px 5px 35px; }
+  #bird-scrapbook .pasted-photos { position:relative; top:0; padding:92px 5px 35px; }
   #bird-scrapbook .featured-print { margin-right:0; }
   #bird-scrapbook .image-placeholder { min-height:180px; }
   #bird-scrapbook .album-photo { margin-top:4px; }

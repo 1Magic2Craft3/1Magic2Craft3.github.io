@@ -1,17 +1,36 @@
 import fs from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
 import { generateImageManifest } from "./generate-image-manifest.mjs";
 import { REPO_ROOT, IMAGES_ROOT, GENERATED_IMAGES_ROOT, IMAGE_VARIANTS, listOriginalPhotos, orientedDimensions, variantsForWidth } from "./image-settings.mjs";
 
 const settingsFile = path.join(REPO_ROOT, "generated", "image-settings.json");
+const sourcesFile = path.join(REPO_ROOT, "generated", "image-sources.json");
 const settings = { version: 1, format: "webp", effort: 4, variants: IMAGE_VARIANTS };
+// Cache validation reads files we may replace; release them before Windows rename.
+sharp.cache(false);
 sharp.concurrency(2);
 
-async function validCachedImage(output, expectedWidth, sourceModified) {
+async function hashPhoto(input) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(input)) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+async function readSourceHashes() {
   try {
-    const stat = await fs.stat(output);
-    if (stat.mtimeMs < sourceModified) return false;
+    const previous = JSON.parse(await fs.readFile(sourcesFile, "utf8"));
+    return previous?.version === 1 && previous.sources && typeof previous.sources === "object" ? previous.sources : {};
+  } catch (error) {
+    if (error.code === "ENOENT" || error instanceof SyntaxError) return {};
+    throw error;
+  }
+}
+
+async function validCachedImage(output, expectedWidth) {
+  try {
     const metadata = await sharp(output).metadata();
     return metadata.format === "webp" && metadata.width === expectedWidth && metadata.height > 0;
   } catch {
@@ -19,22 +38,27 @@ async function validCachedImage(output, expectedWidth, sourceModified) {
   }
 }
 
-async function buildImages(photos, settingsUnchanged) {
+async function buildImages(photos, settingsUnchanged, previousSources) {
   const wanted = new Set();
+  const sources = {};
   let cursor = 0, completed = 0, built = 0, reused = 0;
   async function worker() {
     while (cursor < photos.length) {
       const photo = photos[cursor++];
+      const sourceKey = "Images/" + photo.folder + "/" + photo.name;
+      // Copied or renumbered photos can keep old dates; compare their contents.
+      const sourceHash = await hashPhoto(photo.input);
+      const sourceUnchanged = previousSources[sourceKey] === sourceHash;
+      sources[sourceKey] = sourceHash;
       const metadata = await sharp(photo.input).metadata();
       const { width } = orientedDimensions(metadata);
       if (!width) throw new Error("Cannot read photo dimensions: " + photo.input);
-      const sourceModified = (await fs.stat(photo.input)).mtimeMs;
       const outputFolder = path.join(GENERATED_IMAGES_ROOT, photo.folder);
       await fs.mkdir(outputFolder, { recursive: true });
       for (const variant of variantsForWidth(width)) {
         const output = path.join(outputFolder, photo.index + "-" + variant.suffix + ".webp");
         wanted.add(output);
-        if (settingsUnchanged && await validCachedImage(output, Math.min(width, variant.width), sourceModified)) {
+        if (settingsUnchanged && sourceUnchanged && await validCachedImage(output, Math.min(width, variant.width))) {
           reused += 1;
           continue;
         }
@@ -58,7 +82,7 @@ async function buildImages(photos, settingsUnchanged) {
   const results = await Promise.allSettled([worker(), worker()]);
   const failure = results.find((result) => result.status === "rejected");
   if (failure) throw failure.reason;
-  return { wanted, built, reused };
+  return { wanted, built, reused, sources };
 }
 
 async function removeObsoleteImages(photos, wanted) {
@@ -99,11 +123,20 @@ async function main() {
   const photos = await listOriginalPhotos();
   if (!photos.length) throw new Error("No numeric original photos found in Images/<species>/.");
   const previousSettings = await fs.readFile(settingsFile, "utf8").catch(() => "");
-  const result = await buildImages(photos, previousSettings === JSON.stringify(settings));
+  const previousSources = await readSourceHashes();
+  const result = await buildImages(photos, previousSettings === JSON.stringify(settings), previousSources);
   // Validate every new image and atomically update the catalog before cleanup.
   await generateImageManifest();
   const cleanup = await removeObsoleteImages(photos, result.wanted);
   await fs.writeFile(settingsFile, JSON.stringify(settings));
+  const temporarySources = sourcesFile + ".tmp-" + process.pid;
+  try {
+    const sources = Object.fromEntries(Object.entries(result.sources).sort(([a], [b]) => a.localeCompare(b)));
+    await fs.writeFile(temporarySources, JSON.stringify({ version: 1, sources }));
+    await fs.rename(temporarySources, sourcesFile);
+  } finally {
+    await fs.rm(temporarySources, { force: true });
+  }
   console.log(JSON.stringify({ photos: photos.length, generatedFiles: result.wanted.size, built: result.built, reused: result.reused, ...cleanup }));
 }
 

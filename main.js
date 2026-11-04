@@ -652,7 +652,7 @@ function renderSelectedBird() {
 }
 
 function photosForBird(bird) {
-  if (bird.noPhotos) return [];
+  // New catalog photos take precedence over an outdated noPhotos flag.
   if (bird.images?.length) return bird.images.map((src, index) => ({ src, index: index + 1, variants: [] }));
   return imageCatalog[bird.folder] || catalogByFolder.get(bird.folder.toLowerCase()) || [];
 }
